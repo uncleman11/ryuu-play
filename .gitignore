@@ -11,3 +11,4 @@ node_modules
 !/scans/.keep
 
 /database.sq3
+artifacts/*
