@@ -6,7 +6,7 @@ import { GameError } from '@ptcg/common';
 import { GameMessage } from '@ptcg/common';
 import { User, Message, Deck } from '../../storage';
 import { Core } from '../core/core';
-import { State } from '@ptcg/common';
+import { State,  } from '@ptcg/common';
 import { GameSettings } from '@ptcg/common';
 import { BotGameHandler } from './bot-game-handler';
 
@@ -17,12 +17,14 @@ export class BotClient implements Client {
   public user: User;
   public core: Core | undefined;
   public games: Game[] = [];
+  public defaultDeck: string[] = [];
   private gameHandlers: BotGameHandler[] = [];
 
   constructor(private botAiFactory: BotAiFactory) {
     this.user = new User();
     this.user.name = botAiFactory.name;
     this.name = botAiFactory.name;
+    this.defaultDeck = [];
   }
 
   public onConnect(client: Client): void { }
@@ -110,6 +112,29 @@ export class BotClient implements Client {
     return decks[num];
   }
 
+  public async loadDeckByName(deckName: string): Promise<string[]> {
+    console.log(this.user.id);
+    console.log(deckName);
+    const deckRows = await Deck.find({
+      where: {
+        user: { id: this.user.id },
+        name: deckName,
+        isValid: true
+      }
+    });
+
+    const decks = deckRows
+      .map(d => JSON.parse(d.cards));
+    console.log('DECKS');
+    console.log(decks);
+    if (decks.length === 0) {
+      return [];
+    }
+
+    const num = Math.round(Math.random() * (decks.length - 1));
+    return decks[num];
+  }
+
   private validateDeck(cards: string[], formatName: string): boolean {
     const cardManager = CardManager.getInstance();
     if (cards.some(c => !cardManager.isCardDefined(c))) {
@@ -124,6 +149,22 @@ export class BotClient implements Client {
       return false;
     }
     return true;
+  }
+
+  public async createDeck(name:string, deckCards: string[]): Promise<void> {
+    console.log('CREATE DECK!');
+    const deck = new Deck();
+    const analyser = new DeckAnalyser(deckCards);
+    deck.user.id = this.user.id;
+    deck.name = name;
+    deck.cards = JSON.stringify(deckCards);
+    deck.isValid = analyser.isValid();
+    console.log('DECK CARDS');
+    console.log(deckCards);
+    deck.formatNames = JSON.stringify(analyser.getDeckFormats().map(f => f.name));
+    deck.cardTypes = JSON.stringify(analyser.getDeckType());
+    
+    await deck.save();
   }
 
 }

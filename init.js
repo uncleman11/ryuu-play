@@ -50,4 +50,7 @@ cardManager.defineFormat('Base Sets', [
 
 // Define bots
 const botManager = BotManager.getInstance();
-botManager.registerBot(new SimpleBot('bot'));
+botManager.registerBot(new SimpleBot('bot1'));
+botManager.registerBot(new SimpleBot('bot2'));
+botManager.registerBot(new SimpleBot('bot3'));
+botManager.registerBot(new SimpleBot('bot4'));

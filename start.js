@@ -43,3 +43,4 @@ app.connectToDatabase()
     console.log('Application not started.');
     process.exit(1);
   });
+

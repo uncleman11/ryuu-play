@@ -29,13 +29,13 @@ export const config = {
     database: 'ptcg'
   },
   core: {
-    debug: false,
+    debug: true,
 
     // How often should we execute the background tasks
-    schedulerInterval: 15 * 60 * 1000, // 15 minutes
+    schedulerInterval: 1 * 1000, // 1 second
 
     // Wait till next hour before running tasks
-    schedulerStartNextHour: true,
+    schedulerStartNextHour: false,
 
     // Decrease players' ranking every day by 0.95
     // If you wish to disable this feature set IntervalCount to 0
@@ -62,7 +62,7 @@ export const config = {
 
     // Simulate matches every X ticks of the scheduler
     // If set to 0, the bot matches are disabled
-    botGamesIntervalCount: 0
+    botGamesIntervalCount: 1
   },
   sets: {
     scansDir: '',
