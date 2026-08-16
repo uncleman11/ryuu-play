@@ -150,6 +150,8 @@ export class BotGamesTask {
 
   private experiments = [['Rain Dance', 'Machakazam'], ['Machakazam', 'Machakazam']];
 
+  private scheduleDuplicateGames = false;
+
   constructor(bots: BotClient[]) {
     this.bots = bots;
   }
@@ -174,6 +176,15 @@ export class BotGamesTask {
   //   }, config.bots.botGamesIntervalCount);
   // }
 
+  private isDuplicateGame(bot1: BotClient, bot2: BotClient) {
+    for (const game of bot1.games) {
+      if((game.clients[0].id == bot1.id && game.clients[1].id == bot2.id) || (game.clients[0].id == bot2.id && game.clients[1].id == bot1.id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public startBotGames() {
     const cardManager = CardManager.getInstance();
     const scheduler = Scheduler.getInstance();
@@ -191,16 +202,15 @@ export class BotGamesTask {
       if (botCouples !== undefined) {
         // const { bot1, bot2, deck, format } = botsForGame;
         for (const [bot1, bot2] of botCouples) {
-          console.log('BOT #1!');
-          console.log(bot1);
-          console.log('BOT #2!');
-          console.log(bot2);
+          
           // Use rules from given format
           const rules = new Rules(experimentsFormat.rules);
           rules.formatName = experimentsFormat.name;
           const gameSettings = new GameSettings();
           gameSettings.rules = rules;
-          bot1.createGame(bot1.defaultDeck, gameSettings, bot2);
+          if(this.scheduleDuplicateGames || !this.isDuplicateGame(bot1, bot2)) {
+            bot1.createGame(bot1.defaultDeck, gameSettings, bot2);
+          }          
         }
       }
     }, config.bots.botGamesIntervalCount);
