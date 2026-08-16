@@ -191,6 +191,10 @@ export class BotGamesTask {
       if (botCouples !== undefined) {
         // const { bot1, bot2, deck, format } = botsForGame;
         for (const [bot1, bot2] of botCouples) {
+          console.log('BOT #1!');
+          console.log(bot1);
+          console.log('BOT #2!');
+          console.log(bot2);
           // Use rules from given format
           const rules = new Rules(experimentsFormat.rules);
           rules.formatName = experimentsFormat.name;
@@ -281,11 +285,11 @@ export class BotGamesTask {
               // Replace 'this.getCardsForName(name)' with your actual data lookup logic.
               const cards = this.decks[name].cards;
               await bot.createDeck(name, cards);
-              bot.defaultDeck = cards;
             }
             else {
               console.log('Deck exists for bot ' + bot.id);
             }
+            bot.defaultDeck = this.decks[name].cards;
 
             botsInPair.push(bot);
             // Remove from the pool so the same bot isn't used twice in one experiment
@@ -303,8 +307,6 @@ export class BotGamesTask {
       if (botsInPair.length === 2) {
         results.push([botsInPair[0], botsInPair[1]]);
       }
-      console.log('Results!');
-      console.log(results);
     }
     return results;
   }
