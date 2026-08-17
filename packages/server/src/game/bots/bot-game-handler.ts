@@ -29,6 +29,16 @@ export class BotGameHandler {
     this.changeInProgress = true;
 
     const action = this.ai.decodeNextAction(state);
+    // console.log('STATE');
+    // console.log(state);
+    console.log('ACTION:');
+    console.log(action);
+    // console.log('Pokemon slot:');
+    // console.log(state.players[0].active);
+    // console.log('Bench');
+    // console.log(state.players[0].bench);
+    // console.log('Hand');
+    // console.log(state.players[0].hand);
     if (action) {
       await this.waitAndDispatch(action);
     }
