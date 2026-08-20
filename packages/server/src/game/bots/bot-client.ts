@@ -9,6 +9,7 @@ import { Core } from '../core/core';
 import { State,  } from '@ptcg/common';
 import { GameSettings } from '@ptcg/common';
 import { BotGameHandler } from './bot-game-handler';
+import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotClient implements Client {
 
@@ -19,12 +20,14 @@ export class BotClient implements Client {
   public games: Game[] = [];
   public defaultDeck: string[] = [];
   private gameHandlers: BotGameHandler[] = [];
+  private agent: DQNAgent;
 
-  constructor(private botAiFactory: BotAiFactory) {
+  constructor(private botAiFactory: BotAiFactory, agent:DQNAgent) {
     this.user = new User();
     this.user.name = botAiFactory.name;
     this.name = botAiFactory.name;
     this.defaultDeck = [];
+    this.agent = agent;
   }
 
   public onConnect(client: Client): void { }
@@ -66,7 +69,7 @@ export class BotClient implements Client {
   public onStateChange(game: Game, state: State): void {
     const gameHandler = this.gameHandlers.find(handler => handler.game === game);
     if (gameHandler !== undefined) {
-      gameHandler.onStateChange(state);
+      gameHandler.onStateChange(state, agent);
     }
   }
 

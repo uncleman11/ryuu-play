@@ -1,4 +1,5 @@
-import { SimpleTacticList } from './simple-tactics/simple-tactics';
+// import { SimpleTacticList } from './simple-tactics/simple-tactics';
+import { PossibleActionList } from './possible-actions/possible-actions';
 import { PromptResolverList } from './prompt-resolver/prompt-resolver';
 import { BotArbiterOptions } from '@ptcg/common';
 
@@ -67,7 +68,7 @@ export interface StateScores {
 }
 
 export interface SimpleBotOptions {
-  tactics: SimpleTacticList;
+  tactics: PossibleActionList;
   scores: StateScores;
   promptResolvers: PromptResolverList;
   arbiter: BotArbiterOptions;

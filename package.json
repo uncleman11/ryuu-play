@@ -19,7 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "@ptcg/server": "*",
-    "@ptcg/simple-bot": "*",
-    "@ptcg/sets": "*"
+    "@ptcg/sets": "*",
+    "@ptcg/simple-bot": "*"
   }
 }

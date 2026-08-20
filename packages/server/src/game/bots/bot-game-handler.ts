@@ -3,6 +3,7 @@ import { State } from '@ptcg/common';
 import { Client } from '../client/client.interface';
 import { Game } from '../core/game';
 import { config } from '../../config';
+import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotGameHandler {
 
@@ -19,7 +20,7 @@ export class BotGameHandler {
     this.waitForDeck(deckPromise);
   }
 
-  public async onStateChange(state: State): Promise<void> {
+  public async onStateChange(state: State, agent: DQNAgent): Promise<void> {
     if (!this.ai || this.changeInProgress) {
       this.state = state;
       return;
@@ -28,11 +29,11 @@ export class BotGameHandler {
     this.state = undefined;
     this.changeInProgress = true;
 
-    const action = this.ai.decodeNextAction(state);
+    const action = this.ai.decodeNextAction(state, agent);
     // console.log('STATE');
     // console.log(state);
-    console.log('ACTION:');
-    console.log(action);
+    // console.log('ACTION:');
+    // console.log(action);
     // console.log('Pokemon slot:');
     // console.log(state.players[0].active);
     // console.log('Bench');
@@ -46,7 +47,7 @@ export class BotGameHandler {
     this.changeInProgress = false;
     // A state change was ignored, because we were processing
     if (this.state) {
-      this.onStateChange(this.state);
+      this.onStateChange(this.state, agent);
     }
   }
 

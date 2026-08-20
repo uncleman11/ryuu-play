@@ -7,7 +7,8 @@ export class AttackAction implements Action {
 
   constructor(
     public clientId: number,
-    public name: string
+    public name: string,
+    public localIndex: number,
   ) {}
 
 }

@@ -24,7 +24,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@progress/pako-esm": "^1.0.1"
+    "@progress/pako-esm": "^1.0.1",
+    "@tensorflow/tfjs-layers": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0"
   },
   "devDependencies": {
     "@types/jasmine": "~4.3.0",

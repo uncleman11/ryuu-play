@@ -15,8 +15,8 @@ export class PossibleAttackActions extends PossibleActions {
     }
     
     const possibleActions: Action[] = [];
-    active.attacks.forEach(attack => {
-      const action = new AttackAction(player.id, attack.name);
+    active.attacks.forEach((attack, localIndex) => {
+      const action = new AttackAction(player.id, attack.name, localIndex);
       const score = this.evaluateAction(state, player.id, action);
 
       if (score !== undefined) {

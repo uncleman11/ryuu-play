@@ -6,10 +6,12 @@ import { User } from '../../storage';
 import { config } from '../../config';
 import { Md5 } from '../../utils/md5';
 import { BotGamesTask } from './bot-games-task';
+import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotManager {
 
   private static instance: BotManager;
+  private static agent: DQNAgent;
 
   private bots: BotClient[] = [];
   private botGameArranger = new BotGamesTask(this.bots);
@@ -17,8 +19,8 @@ export class BotManager {
   public static getInstance(): BotManager {
     if (!BotManager.instance) {
       BotManager.instance = new BotManager();
+      BotManager.agent = new DQNAgent();
     }
-
     return BotManager.instance;
   }
 
