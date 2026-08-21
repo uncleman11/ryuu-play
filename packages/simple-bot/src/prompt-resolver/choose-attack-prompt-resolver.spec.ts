@@ -2,7 +2,8 @@ import { State, Player, ResolvePromptAction, GameMessage, ChooseAttackPrompt,
   PokemonCard, CardType, Attack, PowerType, Power } from '@ptcg/common';
 import { ChooseAttackPromptResolver } from './choose-attack-prompt-resolver';
 import {
-  allSimpleTactics,
+  allPossibleActions,
+  // allSimpleTactics,
   allPromptResolvers,
   defaultStateScores,
   defaultArbiterOptions
@@ -23,7 +24,7 @@ describe('ChooseAttackPromptResolver', () => {
 
   beforeEach(() => {
     const simpleBotOptions = {
-      tactics: allSimpleTactics,
+      tactics: allPossibleActions,
       promptResolvers: allPromptResolvers,
       scores: defaultStateScores,
       arbiter: defaultArbiterOptions

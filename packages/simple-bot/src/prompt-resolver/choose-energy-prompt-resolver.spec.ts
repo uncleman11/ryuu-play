@@ -2,10 +2,11 @@ import { CardType, SuperType, State, Player, ResolvePromptAction, GameMessage, S
 import { ChooseEnergyPrompt, EnergyMap } from '@ptcg/common';
 import { ChooseEnergyPromptResolver } from './choose-energy-prompt-resolver';
 import {
-  allSimpleTactics,
+  // allSimpleTactics,
   allPromptResolvers,
   defaultStateScores,
-  defaultArbiterOptions
+  defaultArbiterOptions,
+  allPossibleActions
 } from '../simple-bot-definitions';
 
 describe('ChooseEnergyPromptResolver', () => {
@@ -23,7 +24,7 @@ describe('ChooseEnergyPromptResolver', () => {
 
   beforeEach(() => {
     const simpleBotOptions = {
-      tactics: allSimpleTactics,
+      tactics: allPossibleActions,
       promptResolvers: allPromptResolvers,
       scores: defaultStateScores,
       arbiter: defaultArbiterOptions

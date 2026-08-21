@@ -2,10 +2,11 @@ import { State, Player, ResolvePromptAction, GameMessage, ChooseCardsPrompt,
   PokemonCard, Card, CardType } from '@ptcg/common';
 import { ChooseCardsPromptResolver } from './choose-cards-prompt-resolver';
 import {
-  allSimpleTactics,
+  // allSimpleTactics,
   allPromptResolvers,
   defaultStateScores,
-  defaultArbiterOptions
+  defaultArbiterOptions,
+  allPossibleActions
 } from '../simple-bot-definitions';
 
 class TestCard extends PokemonCard {
@@ -27,7 +28,7 @@ describe('ChooseCardsPromptResolver', () => {
 
   beforeEach(() => {
     const simpleBotOptions = {
-      tactics: allSimpleTactics,
+      tactics: allPossibleActions,
       promptResolvers: allPromptResolvers,
       scores: defaultStateScores,
       arbiter: defaultArbiterOptions

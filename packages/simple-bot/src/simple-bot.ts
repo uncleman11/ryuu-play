@@ -2,7 +2,7 @@ import { SimpleBotOptions } from './simple-bot-options';
 import { allSimpleTactics, allPromptResolvers, defaultStateScores,
   defaultArbiterOptions } from './simple-bot-definitions';
 import { BotAi, BotAiFactory } from '@ptcg/common';
-import { SimpleTacticsAi } from './simple-tactics-ai';
+import { MachineLearningAi } from './machine-learning-ai';
 
 
 export class SimpleBot extends BotAiFactory {
@@ -20,7 +20,7 @@ export class SimpleBot extends BotAiFactory {
   }
 
   public createBotAi(playerId: number, deck: string[] | null): BotAi {
-    return new SimpleTacticsAi(playerId, this.options, deck);
+    return new MachineLearningAi(playerId, this.options, deck);
   }
 
 }

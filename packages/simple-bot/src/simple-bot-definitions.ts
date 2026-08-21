@@ -28,6 +28,21 @@ import { SelectPromptResolver } from './prompt-resolver/select-prompt-resolver';
 import { BotFlipMode, BotShuffleMode } from '@ptcg/common';
 import { PlayFossilTactic } from './simple-tactics/play-fossil-tactic';
 import { UseTrainerInPlayTactic } from './simple-tactics/use-trainer-in-play-tactic';
+import { PossibleActionList } from './possible-actions/possible-actions';
+import { PossibleAttachEnergyActions } from './possible-actions/possible-attach-energy-actions';
+import { PossibleAttachToolActions } from './possible-actions/possible-attach-tool-actions';
+import { PossibleAttackActions } from './possible-actions/possible-attack-actions';
+import { PossibleEvolveActions } from './possible-actions/possible-evolve-actions';
+import { PossiblePlayBasicActions } from './possible-actions/possible-play-basic-actions';
+import { PossiblePlayFossilActions } from './possible-actions/possible-play-fossil-actions';
+import { PossiblePlayStadiumActions } from './possible-actions/possible-play-stadium-actions';
+import { PossiblePlaySupporterActions } from './possible-actions/possible-play-supporter-actions';
+import { PossiblePlayTrainerActions } from './possible-actions/possible-play-trainer-actions';
+import { PossibleRetreatTacticActions } from './possible-actions/possible-retreat-actions';
+import { PossibleTrainerInPlayActions } from './possible-actions/possible-use-trainer-in-play-actions';
+import { PossibleUseAbilityActions } from './possible-actions/possible-use-ability-actions';
+import { PossibleUseDiscardAbilityActions } from './possible-actions/possible-use-discard-ability-actions';
+import { PossibleUseStadiumActions } from './possible-actions/possible-use-stadium-actions';
 
 export const defaultStateScores = {
   hand: {
@@ -116,6 +131,23 @@ export const allPromptResolvers: PromptResolverList = [
   OrderCardsPromptResolver,
   PutDamagePromptResolver,
   SelectPromptResolver
+];
+
+export const allPossibleActions: PossibleActionList = [
+  PossibleAttachEnergyActions,
+  PossibleAttachToolActions,
+  PossibleAttackActions,
+  PossibleEvolveActions,
+  PossiblePlayBasicActions,
+  PossiblePlayFossilActions,
+  PossiblePlayStadiumActions,
+  PossiblePlaySupporterActions,
+  PossiblePlayTrainerActions,
+  PossibleRetreatTacticActions,
+  PossibleTrainerInPlayActions,
+  PossibleUseAbilityActions,
+  PossibleUseDiscardAbilityActions,
+  PossibleUseStadiumActions
 ];
 
 export const allSimpleTactics: SimpleTacticList = [

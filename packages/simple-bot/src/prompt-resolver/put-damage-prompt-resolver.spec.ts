@@ -2,10 +2,11 @@ import { State, Player, ResolvePromptAction, GameMessage, PokemonSlot,
   PutDamagePrompt, PlayerType, SlotType, PokemonCard, DamageMap} from '@ptcg/common';
 import { PutDamagePromptResolver } from './put-damage-prompt-resolver';
 import {
-  allSimpleTactics,
+  // allSimpleTactics,
   allPromptResolvers,
   defaultStateScores,
-  defaultArbiterOptions
+  defaultArbiterOptions,
+  allPossibleActions
 } from '../simple-bot-definitions';
 
 class TestPokemon extends PokemonCard {
@@ -44,7 +45,7 @@ describe('PutDamagePromptResolver', () => {
 
   beforeEach(() => {
     const simpleBotOptions = {
-      tactics: allSimpleTactics,
+      tactics: allPossibleActions,
       promptResolvers: allPromptResolvers,
       scores: defaultStateScores,
       arbiter: defaultArbiterOptions

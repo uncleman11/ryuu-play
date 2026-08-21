@@ -19,7 +19,7 @@ export class AttackTactic extends SimpleTactic {
     let attackAction: AttackAction | undefined;
 
     active.attacks.forEach(attack => {
-      const action = new AttackAction(player.id, attack.name);
+      const action = new AttackAction(player.id, attack.name, 0);
       const score = this.evaluateAction(state, player.id, action);
 
       if (score !== undefined && bestScore < score) {

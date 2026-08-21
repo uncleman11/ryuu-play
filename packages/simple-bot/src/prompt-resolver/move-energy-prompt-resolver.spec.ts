@@ -3,10 +3,11 @@ import { CardType, SuperType, State, Player, ResolvePromptAction, GameMessage,
   PokemonCard, EnergyCard } from '@ptcg/common';
 import { MoveEnergyPromptResolver } from './move-energy-prompt-resolver';
 import {
-  allSimpleTactics,
+  // allSimpleTactics,
   allPromptResolvers,
   defaultStateScores,
-  defaultArbiterOptions
+  defaultArbiterOptions,
+  allPossibleActions
 } from '../simple-bot-definitions';
 
 class TestEnergy extends EnergyCard {
@@ -60,7 +61,7 @@ describe('MoveEnergyPromptResolver', () => {
 
   beforeEach(() => {
     const simpleBotOptions = {
-      tactics: allSimpleTactics,
+      tactics: allPossibleActions,
       promptResolvers: allPromptResolvers,
       scores: defaultStateScores,
       arbiter: defaultArbiterOptions
