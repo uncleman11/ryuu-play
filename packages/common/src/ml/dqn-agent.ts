@@ -40,8 +40,9 @@ export class DQNAgent {
 
   // --- 1. The Neural Network Factory ---
   private createModel(): tf.LayersModel {
+    console.log('I AM CREATING THE MODEL');
     const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 24, inputShape: [4], activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 24, inputShape: [18], activation: 'relu' }));
     model.add(tf.layers.dense({ units: 24, activation: 'relu' }));
     model.add(tf.layers.dense({ units: 2, activation: 'linear' })); // 2 actions
 
@@ -99,10 +100,12 @@ export class DQNAgent {
   }
 
   public updateTargetModel(): void {
+    console.log('I AM UPDATING TARGET MODEL');
     this.targetModel.setWeights(this.model.getWeights());
   }
 
   public act(state: number[]): number {
+    console.log('I AM ACTING');
     // Exploration vs Exploitation
     if (Math.random() < this.epsilon) {
       return Math.floor(Math.random() * 2); // Random action
@@ -140,6 +143,7 @@ export class DQNAgent {
   }
 
   public train() {
+    console.log('I AM TRAINING');
     if (this.memory.length < BATCH_SIZE) return;
 
     const batch = this.memory.sample(BATCH_SIZE);
@@ -190,12 +194,13 @@ export class DQNAgent {
     if (this.epsilon > EPSILON_MIN) {
       this.epsilon *= EPSILON_DECAY;
     }
-
+  
     // Manual disposal of all intermediate tensors to prevent memory leaks
     tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
   }
 
   public trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
+    console.log(state);
     let statePlayer: Player = new Player();
     let nextStatePlayer: Player = new Player();
     for (let i = 0; i < state!.length; i++) {
@@ -228,7 +233,7 @@ export class DQNAgent {
     if (this.episode % 10 === 0) {
       this.updateTargetModel();
     }
-    console.log('Training complete.');
+    console.log('Training step ran fine. Episode: ' + this.episode);
   }
 }
 
