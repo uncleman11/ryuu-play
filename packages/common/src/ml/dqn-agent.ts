@@ -1,4 +1,5 @@
 import * as tf from '@tensorflow/tfjs-node';
+import { Mutex } from 'async-mutex';
 
 import {EnergyCard} from '../store/card/energy-card';
 import {Player} from '../store/state/player';
@@ -28,6 +29,8 @@ export class DQNAgent {
   public memory: ReplayBuffer;
   public epsilon: number;
   public episode: number;
+  private static mutex = new Mutex();
+
 
   constructor() {
     this.model = this.createModel();
@@ -142,7 +145,7 @@ export class DQNAgent {
     });
   }
 
-  public train() {
+  public async train() {
     console.log('I AM TRAINING');
     if (this.memory.length < BATCH_SIZE) return;
 
@@ -185,22 +188,29 @@ export class DQNAgent {
     const targetsTensor = tf.tensor2d(targets);
 
     // Train the model
-    this.model.fit(stateTensor, targetsTensor, {
+    const history = await this.model.fit(stateTensor, targetsTensor, {
       epochs: 1,
-      verbose: 0
+      verbose: 1
     });
 
     // Decay epsilon
     if (this.epsilon > EPSILON_MIN) {
       this.epsilon *= EPSILON_DECAY;
     }
+
+    // --- THE CHANGE IS HERE ---
+    // Capture the result of model.fit()
+    
+
+    // Extract the loss value from the first epoch [0]
+    const loss = history.history.loss[0];
+    console.log('LOSS:' + loss);
   
     // Manual disposal of all intermediate tensors to prevent memory leaks
     // tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
   }
 
-  public trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
-    console.log(state);
+  public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
     let statePlayer: Player = new Player();
     let nextStatePlayer: Player = new Player();
     for (let i = 0; i < state!.length; i++) {
@@ -225,14 +235,19 @@ export class DQNAgent {
     else if (nextStatePrizes < statePrizes) {
       reward = 1;
     }
-    
+
+    const release = await DQNAgent.mutex.acquire(); // Acquire lock
+    console.log('ACQUIRING LOCK');
     this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
-    this.train();
+    await this.train();
+    
 
     this.episode += 1;
     if (this.episode % 10 === 0) {
       this.updateTargetModel();
     }
+    release(); // Release lock
+
     console.log(done);
     console.log('Training step ran fine. Episode: ' + this.episode);
   }

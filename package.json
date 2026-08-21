@@ -11,9 +11,7 @@
     "packages/common",
     "packages/sets",
     "packages/server",
-    "packages/simple-bot",
-    "packages/play",
-    "packages/cordova"
+    "packages/simple-bot"
   ],
   "author": "",
   "license": "MIT",
