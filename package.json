@@ -11,11 +11,13 @@
     "packages/common",
     "packages/sets",
     "packages/server",
-    "packages/simple-bot"
+    "packages/simple-bot",
+    "packages/play"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@angular-devkit/build-angular": "^16.2.16",
     "@ptcg/server": "*",
     "@ptcg/sets": "*",
     "@ptcg/simple-bot": "*",
