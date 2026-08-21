@@ -1,9 +1,11 @@
 {
   "extends": "../common/tsconfig",
   "compilerOptions": {
-    "outDir": "dist/cjs"
+    "outDir": "dist/cjs",
+    "moduleResolution": "node",
+    "skipLibCheck": true
   },
   "include": [
-    "src/**/*.ts"
-, "../common/src/ml/dqn-agent.ts"  ]
+    "src/**/*.ts" 
+  ]
 }

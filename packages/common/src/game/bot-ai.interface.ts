@@ -1,7 +1,10 @@
+import { DQNAgent } from '../ml';
 import { Action, State } from '../store';
 
 export interface BotAi {
-  decodeNextAction(state: State): Action | undefined;
+  action_index: number;
+  getPlayerId(): number;
+  decodeNextAction(state: State, agent: DQNAgent): Action | undefined;
 }
 
 export abstract class BotAiFactory {

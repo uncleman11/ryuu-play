@@ -281,7 +281,7 @@ export class BoardComponent implements OnDestroy {
 
         // Use attack from the card
         } else if (result.attack) {
-          this.gameService.attack(gameId, result.attack);
+          this.gameService.attack(gameId, result.attack, 0);
 
         // Use trainer in play (attached to the Pokemon)
         } else if (result.trainer) {

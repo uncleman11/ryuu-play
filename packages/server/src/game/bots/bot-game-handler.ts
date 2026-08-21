@@ -1,26 +1,28 @@
 import { Action, BotAi, BotAiFactory } from '@ptcg/common';
-import { State } from '@ptcg/common';
+import { DQNAgent, State } from '@ptcg/common';
 import { Client } from '../client/client.interface';
 import { Game } from '../core/game';
 import { config } from '../../config';
-import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotGameHandler {
 
   private ai: BotAi | undefined;
   private state: State | undefined;
   private changeInProgress: boolean = false;
+  private agent: DQNAgent;
 
   constructor(
     private client: Client,
     private botAiFactory: BotAiFactory,
     public game: Game,
-    deckPromise: Promise<string[]>
+    deckPromise: Promise<string[]>,
+    agent:DQNAgent
   ) {
+    this.agent = agent;
     this.waitForDeck(deckPromise);
   }
 
-  public async onStateChange(state: State, agent: DQNAgent): Promise<void> {
+  public async onStateChange(state: State): Promise<void> {
     if (!this.ai || this.changeInProgress) {
       this.state = state;
       return;
@@ -29,9 +31,9 @@ export class BotGameHandler {
     this.state = undefined;
     this.changeInProgress = true;
 
-    const action = this.ai.decodeNextAction(state, agent);
-    // console.log('STATE');
-    // console.log(state);
+    const action = this.ai.decodeNextAction(state, this.agent);
+    const action_index = this.ai.action_index;
+    // console.log('STATE');    // console.log(state);
     // console.log('ACTION:');
     // console.log(action);
     // console.log('Pokemon slot:');
@@ -41,13 +43,13 @@ export class BotGameHandler {
     // console.log('Hand');
     // console.log(state.players[0].hand);
     if (action) {
-      await this.waitAndDispatch(action);
+      await this.waitAndDispatch(action, action_index);
     }
 
     this.changeInProgress = false;
     // A state change was ignored, because we were processing
     if (this.state) {
-      this.onStateChange(this.state, agent);
+      this.onStateChange(this.state);
     }
   }
 
@@ -67,11 +69,12 @@ export class BotGameHandler {
     }
   }
 
-  private waitAndDispatch(action: Action): Promise<void> {
+  private waitAndDispatch(action: Action, action_index: number): Promise<void> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          this.game.dispatch(this.client, action);
+          const nextState: State = this.game.dispatch(this.client, action);
+          this.agent.trainingStep(this.state?.players, action_index, nextState?.players, this.ai!.getPlayerId());
         } catch (error) {
           // continue regardless of error
         }

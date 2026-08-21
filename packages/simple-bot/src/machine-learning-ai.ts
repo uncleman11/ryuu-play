@@ -49,6 +49,7 @@ export class MachineLearningAi implements BotAi {
   private legalActions: Action[];
   private resolvers: PromptResolver[];
   public possibleActionOffsets: Map<string, number>;
+  public action_index: number = -1;
 
   constructor(
     private playerId: number,
@@ -68,7 +69,11 @@ export class MachineLearningAi implements BotAi {
     ]);
   }
 
-  public registerPossibleActions(possibleActions: Action[]): void {
+  public getPlayerId(): number {
+    return this.playerId;
+  }
+
+  public registerLegalActions(possibleActions: Action[]): void {
     for (let i = 0; i < possibleActions.length; i++) {
       const possibleAction: Action = possibleActions[i];
       let offset: number = -1;
@@ -173,10 +178,17 @@ export class MachineLearningAi implements BotAi {
     // Need to preprocess state here
     // Need to filter actions that cannot be performed
     
-    // this.getAllPossibleActions(allPossibleActions);
-    // const preprocessedState = agent.preprocessGameState(state.players);
-    // const actions = agent.act(preprocessedState);
+    this.registerLegalActions(allPossibleActions);
+    const preprocessedState = agent.preprocessGameState(state.players);
+    const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
+    action_indexes.forEach((action_index, index) => {
+      if(this.legalActions[action_index]) {
+        return this.legalActions[action_index];
+      }
+    });
     // const reward = Math.random() > 0.8 ? 1 : -0.1; // Reward logic
+
+    return new PassTurnAction(this.playerId);
  
     
   }

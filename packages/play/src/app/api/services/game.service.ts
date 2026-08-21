@@ -131,8 +131,8 @@ export class GameService {
       .subscribe(() => {}, (error: ApiError) => this.handleError(error));
   }
 
-  public attack(gameId: number, attack: string) {
-    this.socketService.emit('game:action:attack', { gameId, attack })
+  public attack(gameId: number, attack: string, localIndex: number) {
+    this.socketService.emit('game:action:attack', { gameId, attack, localIndex })
       .subscribe(() => {}, (error: ApiError) => this.handleError(error));
   }
 

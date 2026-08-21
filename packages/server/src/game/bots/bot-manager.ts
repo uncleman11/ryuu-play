@@ -1,12 +1,11 @@
 import { BotClient } from './bot-client';
 import { Core } from '../core/core';
 import { BotAiFactory, GameError } from '@ptcg/common';
-import { GameMessage } from '@ptcg/common';
+import { DQNAgent, GameMessage } from '@ptcg/common';
 import { User } from '../../storage';
 import { config } from '../../config';
 import { Md5 } from '../../utils/md5';
 import { BotGamesTask } from './bot-games-task';
-import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotManager {
 
@@ -25,7 +24,7 @@ export class BotManager {
   }
 
   public registerBot(botAiFactory: BotAiFactory): void {
-    this.bots.push(new BotClient(botAiFactory));
+    this.bots.push(new BotClient(botAiFactory, BotManager.agent));
   }
 
   public async initBots(core: Core) {

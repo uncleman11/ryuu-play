@@ -7,9 +7,8 @@ import { GameMessage } from '@ptcg/common';
 import { User, Message, Deck } from '../../storage';
 import { Core } from '../core/core';
 import { State,  } from '@ptcg/common';
-import { GameSettings } from '@ptcg/common';
+import { DQNAgent, GameSettings } from '@ptcg/common';
 import { BotGameHandler } from './bot-game-handler';
-import { DQNAgent } from '../../../../common/src/ml/dqn-agent';
 
 export class BotClient implements Client {
 
@@ -69,13 +68,13 @@ export class BotClient implements Client {
   public onStateChange(game: Game, state: State): void {
     const gameHandler = this.gameHandlers.find(handler => handler.game === game);
     if (gameHandler !== undefined) {
-      gameHandler.onStateChange(state, agent);
+      gameHandler.onStateChange(state);
     }
   }
 
   protected addGameHandler(game: Game): BotGameHandler {
     const formatName = game.state.rules.formatName;
-    const gameHandler = new BotGameHandler(this, this.botAiFactory, game, this.loadDeck(formatName));
+    const gameHandler = new BotGameHandler(this, this.botAiFactory, game, this.loadDeck(formatName), this.agent);
     this.gameHandlers.push(gameHandler);
     return gameHandler;
   }

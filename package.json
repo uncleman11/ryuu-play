@@ -20,6 +20,8 @@
   "dependencies": {
     "@ptcg/server": "*",
     "@ptcg/sets": "*",
-    "@ptcg/simple-bot": "*"
+    "@ptcg/simple-bot": "*",
+    "@tensorflow/tfjs": "^4.13.0",
+    "@tensorflow/tfjs-node": "^4.22.0"
   }
 }

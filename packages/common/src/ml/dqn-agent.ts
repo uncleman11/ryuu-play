@@ -27,6 +27,7 @@ export class DQNAgent {
   private targetModel: tf.LayersModel;
   public memory: ReplayBuffer;
   public epsilon: number;
+  public episode: number;
 
   constructor() {
     this.model = this.createModel();
@@ -34,6 +35,7 @@ export class DQNAgent {
     this.updateTargetModel();
     this.memory = new ReplayBuffer(MEMORY_SIZE);
     this.epsilon = EPSILON_START;
+    this.episode = 0;
   }
 
   // --- 1. The Neural Network Factory ---
@@ -137,7 +139,7 @@ export class DQNAgent {
     });
   }
 
-  public async train(): Promise<void> {
+  public train() {
     if (this.memory.length < BATCH_SIZE) return;
 
     const batch = this.memory.sample(BATCH_SIZE);
@@ -179,7 +181,7 @@ export class DQNAgent {
     const targetsTensor = tf.tensor2d(targets);
 
     // Train the model
-    await this.model.fit(stateTensor, targetsTensor, {
+    this.model.fit(stateTensor, targetsTensor, {
       epochs: 1,
       verbose: 0
     });
@@ -192,7 +194,44 @@ export class DQNAgent {
     // Manual disposal of all intermediate tensors to prevent memory leaks
     tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
   }
+
+  public trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
+    let statePlayer: Player = new Player();
+    let nextStatePlayer: Player = new Player();
+    for (let i = 0; i < state!.length; i++) {
+      if (state![i].id === player_id) {
+        statePlayer = state![i];
+      }
+    }
+    for (let i = 0; i < nextState!.length; i++) {
+      if (nextState![i].id === player_id) {
+        nextStatePlayer = nextState![i];
+      }
+    }
+    let reward = 0;
+    let done: boolean = false;
+    const statePrizes = statePlayer.prizes.length;
+    const nextStatePrizes = nextStatePlayer.prizes.length;
+
+    if (nextStatePlayer?.prizes.length == 0) {
+      reward = 10;
+      done = true;
+    }
+    else if (nextStatePrizes < statePrizes) {
+      reward = 1;
+    }
+    
+    this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
+    this.train();
+
+    this.episode += 1;
+    if (this.episode % 10 === 0) {
+      this.updateTargetModel();
+    }
+    console.log('Training complete.');
+  }
 }
+
 
 // --- 2. Experience Replay Buffer ---
 class ReplayBuffer {
