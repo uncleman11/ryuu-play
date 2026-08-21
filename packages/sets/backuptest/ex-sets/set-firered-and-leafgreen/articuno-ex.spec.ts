@@ -244,7 +244,7 @@ describe('Articuno ex RG', () => {
     const { player, opponent, prompts } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Cold Crush'));
+    sim.dispatch(new AttackAction(1, 'Cold Crush', 0));
 
     // first, the player discards energy from articuno-ex
     expect(prompts.length).toEqual(1);
@@ -275,7 +275,7 @@ describe('Articuno ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Cold Crush'));
+    sim.dispatch(new AttackAction(1, 'Cold Crush', 0));
 
     // first, the player discards energy from articuno-ex
     expect(prompts.length).toEqual(1);
@@ -329,7 +329,7 @@ describe('Articuno ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Cold Crush'));
+    sim.dispatch(new AttackAction(1, 'Cold Crush', 0));
 
     // first, the player discards energy from articuno-ex
     expect(prompts.length).toEqual(1);
@@ -374,7 +374,7 @@ describe('Articuno ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Cold Crush'));
+    sim.dispatch(new AttackAction(1, 'Cold Crush', 0));
 
     // Player has no energies, no prompt
 

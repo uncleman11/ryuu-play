@@ -33,7 +33,7 @@ describe('Bellsprout JU', () => {
     deck.cards.push(bellsprout);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Call for Family'));
+    sim.dispatch(new AttackAction(1, 'Call for Family', 0));
     expect(prompts.length).toEqual(1);
     expect(prompts[0].type).toEqual('Choose cards');
 
@@ -47,7 +47,7 @@ describe('Bellsprout JU', () => {
 
   it('Should use Call For Family - cancel prompt', () => {
     // attack
-    sim.dispatch(new AttackAction(1, 'Call for Family'));
+    sim.dispatch(new AttackAction(1, 'Call for Family', 0));
     const prompt = TestUtils.lastPrompt(sim) as ChooseCardsPrompt;
     expect(prompt).toBeTruthy();
     expect(prompt instanceof ChooseCardsPrompt).toBeTrue();
@@ -64,7 +64,7 @@ describe('Bellsprout JU', () => {
     deck.cards = [];
     
     // attack
-    sim.dispatch(new AttackAction(1, 'Call for Family'));
+    sim.dispatch(new AttackAction(1, 'Call for Family', 0));
 
     // ends turn without prompt
     const prompt = TestUtils.lastPrompt(sim);
@@ -79,7 +79,7 @@ describe('Bellsprout JU', () => {
     bench.forEach(b => b.pokemons.cards = [new TestPokemon()]);
     
     // attack
-    sim.dispatch(new AttackAction(1, 'Call for Family'));
+    sim.dispatch(new AttackAction(1, 'Call for Family', 0));
     const chooseCards = prompts[0] as ChooseCardsPrompt;
     expect(prompts.length).toEqual(1);
     expect(chooseCards.type).toEqual('Choose cards');

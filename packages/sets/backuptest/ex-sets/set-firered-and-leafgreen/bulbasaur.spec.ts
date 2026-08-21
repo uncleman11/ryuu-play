@@ -1,13 +1,14 @@
 import {
   AttackAction,
   CardType,
-  Simulator
+  Simulator,
+  SpecialCondition
 } from "@ptcg/common";
-import { Bulbasaur2 } from "../../../src/ex-sets/set-firered-and-leafgreen/bulbasaur-2";
+import { Bulbasaur } from "../../../src/ex-sets/set-firered-and-leafgreen/bulbasaur";
 
 import { TestUtils } from "../../test-utils";
 
-describe('Bulbasaur RG-2', () => {
+describe('Bulbasaur RG', () => {
   let sim: Simulator;
 
   beforeEach(() => {
@@ -15,40 +16,42 @@ describe('Bulbasaur RG-2', () => {
 
     TestUtils.setActive(
       sim,
-      [ new Bulbasaur2() ],
-      [ CardType.GRASS, CardType.COLORLESS ]
+      [ new Bulbasaur() ],
+      [ CardType.COLORLESS, CardType.COLORLESS ]
     );
   });
 
-  it('Should use Ram', () => {
+  it('Should use Sleep Poison - heads', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Ram'));
+    sim.dispatch(new AttackAction(1, 'Sleep Poison', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
+    expect(opponent.active.specialConditions).toEqual([SpecialCondition.POISONED]);
     expect(opponent.active.damage).toEqual(10);
   });
 
-  it('Should use Gouge - heads', () => {
-    const { opponent } = TestUtils.getAll(sim);
-
-    // attack
-    sim.dispatch(new AttackAction(1, 'Gouge'));
-
-    expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
-    expect(opponent.active.damage).toEqual(30);
-  });
-
-  it('Should use Gouge - tails', () => {
+  it('Should use Sleep Poison - tails', () => {
     const { opponent } = TestUtils.getAll(sim);
     TestUtils.setFlipResults(sim, [false]);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Gouge'));
+    sim.dispatch(new AttackAction(1, 'Sleep Poison', 0));
+
+    expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
+    expect(opponent.active.damage).toEqual(0);
+  });
+
+  it('Should use Razor Leaf', () => {
+    const { opponent } = TestUtils.getAll(sim);
+
+    // attack
+    sim.dispatch(new AttackAction(1, 'Razor Leaf', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(20);
   });
+
 
 });

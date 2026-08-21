@@ -142,7 +142,7 @@ describe('Blastoise ex RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool'));
+    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool', 0));
 
     // No prompts, just 80 damage
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
@@ -160,7 +160,7 @@ describe('Blastoise ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool'));
+    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(80);
@@ -179,7 +179,7 @@ describe('Blastoise ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool'));
+    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool', 0));
     
     const prompt = TestUtils.lastPrompt(sim) as ChooseCardsPrompt;
     expect(prompt).toEqual(jasmine.objectContaining({
@@ -211,7 +211,7 @@ describe('Blastoise ex RG', () => {
     );
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool'));
+    sim.dispatch(new AttackAction(1, 'Hyper Whirlpool', 0));
     
     const prompt = TestUtils.lastPrompt(sim) as ChooseCardsPrompt;
     expect(prompt).toEqual(jasmine.objectContaining({

@@ -24,7 +24,7 @@ describe('Bellsprout RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Vine Whip'));
+    sim.dispatch(new AttackAction(1, 'Vine Whip', 0)), 0);
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(10);

@@ -25,7 +25,7 @@ describe('Beedrill RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Poison Sting'));
+    sim.dispatch(new AttackAction(1, 'Poison Sting', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.specialConditions).toEqual([SpecialCondition.POISONED]);
@@ -36,7 +36,7 @@ describe('Beedrill RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Link Needle'));
+    sim.dispatch(new AttackAction(1, 'Link Needle', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(50);
@@ -48,7 +48,7 @@ describe('Beedrill RG', () => {
     player.bench[1].pokemons.cards = [ new Beedrill() ];
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Link Needle'));
+    sim.dispatch(new AttackAction(1, 'Link Needle', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(110);

@@ -75,7 +75,7 @@ describe('Butterfree RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Whirlwind'));
+    sim.dispatch(new AttackAction(1, 'Whirlwind', 0));
 
     // No prompts
 
@@ -92,7 +92,7 @@ describe('Butterfree RG', () => {
     const benched = opponent.bench[0];
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Whirlwind'));
+    sim.dispatch(new AttackAction(1, 'Whirlwind', 0));
 
     expect(prompts.length).toEqual(1);
     expect(prompts[0]).toEqual(jasmine.objectContaining({

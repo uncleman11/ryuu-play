@@ -30,7 +30,7 @@ describe('Caterpie RG', () => {
     player.deck.cards = [];
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Signs of Evolution'));
+    sim.dispatch(new AttackAction(1, 'Signs of Evolution', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
   });
@@ -39,7 +39,7 @@ describe('Caterpie RG', () => {
     const { opponent, player, prompts } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Signs of Evolution'));
+    sim.dispatch(new AttackAction(1, 'Signs of Evolution', 0));
     
     expect(prompts.length).toEqual(1);
     expect(prompts[0]).toEqual(jasmine.objectContaining({
@@ -63,7 +63,7 @@ describe('Caterpie RG', () => {
     player.deck.cards.push(metapod, butterfree);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Signs of Evolution'));
+    sim.dispatch(new AttackAction(1, 'Signs of Evolution', 0));
     
     expect(prompts.length).toEqual(1);
     expect(prompts[0]).toEqual(jasmine.objectContaining({
@@ -95,7 +95,7 @@ describe('Caterpie RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'String Shot'));
+    sim.dispatch(new AttackAction(1, 'String Shot', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.specialConditions).toEqual([SpecialCondition.PARALYZED]);
@@ -107,7 +107,7 @@ describe('Caterpie RG', () => {
     TestUtils.setFlipResults(sim, [false]);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'String Shot'));
+    sim.dispatch(new AttackAction(1, 'String Shot', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.specialConditions).toEqual([]);

@@ -24,7 +24,7 @@ describe('Arcanine RG', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Flare'));
+    sim.dispatch(new AttackAction(1, 'Flare', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(20);
@@ -34,7 +34,7 @@ describe('Arcanine RG', () => {
     const { player, opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Heat Tackle'));
+    sim.dispatch(new AttackAction(1, 'Heat Tackle', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(player.active.damage).toEqual(10);

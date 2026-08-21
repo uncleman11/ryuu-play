@@ -33,7 +33,7 @@ describe('Butterfree JU', () => {
     const ids = TestUtils.setCardIds(sim);  // to better compare which card is which
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Whirlwind'));
+    sim.dispatch(new AttackAction(1, 'Whirlwind', 0));
     expect(prompts.length).toEqual(1);
     expect(prompts[0].type).toEqual('Choose pokemon');
 
@@ -53,7 +53,7 @@ describe('Butterfree JU', () => {
     const ids = TestUtils.setCardIds(sim);  // to better compare which card is which
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Whirlwind'));
+    sim.dispatch(new AttackAction(1, 'Whirlwind', 0));
     expect(prompts.length).toEqual(0);
 
     // opponent chooses benched
@@ -68,7 +68,7 @@ describe('Butterfree JU', () => {
     player.active.damage = 60;
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Mega Drain'));
+    sim.dispatch(new AttackAction(1, 'Mega Drain', 0));
     expect(prompts.length).toEqual(0);
 
     // opponent chooses benched

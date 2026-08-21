@@ -1,14 +1,13 @@
 import {
   AttackAction,
   CardType,
-  Simulator,
-  SpecialCondition
+  Simulator
 } from "@ptcg/common";
-import { Bulbasaur } from "../../../src/ex-sets/set-firered-and-leafgreen/bulbasaur";
+import { Bulbasaur2 } from "../../../src/ex-sets/set-firered-and-leafgreen/bulbasaur-2";
 
 import { TestUtils } from "../../test-utils";
 
-describe('Bulbasaur RG', () => {
+describe('Bulbasaur RG-2', () => {
   let sim: Simulator;
 
   beforeEach(() => {
@@ -16,42 +15,40 @@ describe('Bulbasaur RG', () => {
 
     TestUtils.setActive(
       sim,
-      [ new Bulbasaur() ],
-      [ CardType.COLORLESS, CardType.COLORLESS ]
+      [ new Bulbasaur2() ],
+      [ CardType.GRASS, CardType.COLORLESS ]
     );
   });
 
-  it('Should use Sleep Poison - heads', () => {
+  it('Should use Ram', () => {
     const { opponent } = TestUtils.getAll(sim);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Sleep Poison'));
+    sim.dispatch(new AttackAction(1, 'Ram', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
-    expect(opponent.active.specialConditions).toEqual([SpecialCondition.POISONED]);
     expect(opponent.active.damage).toEqual(10);
   });
 
-  it('Should use Sleep Poison - tails', () => {
+  it('Should use Gouge - heads', () => {
+    const { opponent } = TestUtils.getAll(sim);
+
+    // attack
+    sim.dispatch(new AttackAction(1, 'Gouge', 0));
+
+    expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
+    expect(opponent.active.damage).toEqual(30);
+  });
+
+  it('Should use Gouge - tails', () => {
     const { opponent } = TestUtils.getAll(sim);
     TestUtils.setFlipResults(sim, [false]);
 
     // attack
-    sim.dispatch(new AttackAction(1, 'Sleep Poison'));
-
-    expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
-    expect(opponent.active.damage).toEqual(0);
-  });
-
-  it('Should use Razor Leaf', () => {
-    const { opponent } = TestUtils.getAll(sim);
-
-    // attack
-    sim.dispatch(new AttackAction(1, 'Razor Leaf'));
+    sim.dispatch(new AttackAction(1, 'Gouge', 0));
 
     expect(TestUtils.isPlayerTurn(sim, opponent)).toBeTrue();
     expect(opponent.active.damage).toEqual(20);
   });
-
 
 });
