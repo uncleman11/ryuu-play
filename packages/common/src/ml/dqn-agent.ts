@@ -196,7 +196,7 @@ export class DQNAgent {
     }
   
     // Manual disposal of all intermediate tensors to prevent memory leaks
-    tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
+    // tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
   }
 
   public trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
@@ -233,6 +233,7 @@ export class DQNAgent {
     if (this.episode % 10 === 0) {
       this.updateTargetModel();
     }
+    console.log(done);
     console.log('Training step ran fine. Episode: ' + this.episode);
   }
 }
