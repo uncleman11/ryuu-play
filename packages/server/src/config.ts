@@ -59,7 +59,7 @@ export const config = {
     defaultPassword: '',
 
     // Delay between every action that bot is making
-    actionDelay: 1000,
+    actionDelay: 250,
 
     // Simulate matches every X ticks of the scheduler
     // If set to 0, the bot matches are disabled

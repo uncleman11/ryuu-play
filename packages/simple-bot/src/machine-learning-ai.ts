@@ -51,6 +51,11 @@ export class MachineLearningAi implements BotAi {
   public possibleActionOffsets: Map<string, number>;
   public action_index: number = -1;
 
+  // Handle loops properly
+  public max_action_retries: number = 4;
+  public last_action_index: number = -1;
+  public action_retries = 0;
+
   constructor(
     private playerId: number,
     options: SimpleBotOptions,
@@ -183,13 +188,25 @@ export class MachineLearningAi implements BotAi {
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
     const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
-    const foundIndex = action_indexes.find(index => legalActions[index] !== null);
+
+    let foundIndex: number | undefined = -1;
+    if(this.action_retries >= this.max_action_retries) {
+      console.log('TRIED TOO MANY TIMES THE SAME ACTION!');
+      foundIndex = action_indexes.find(index => legalActions[index] !== null && index !== this.last_action_index);
+    }
+    else{
+      foundIndex = action_indexes.find(index => legalActions[index] !== null);
+    }
 
     if (foundIndex !== undefined) {
-      // console.log('LEGAL ACTION!!!!');
-      // console.log(this.legalActions[foundIndex]);
-      
       this.action_index = foundIndex;
+      if (foundIndex == this.last_action_index) {
+        this.action_retries++;
+      }
+      else {
+        this.action_retries = 0;
+      }
+      this.last_action_index = foundIndex;
       return legalActions[foundIndex];
     }
 
