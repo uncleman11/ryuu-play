@@ -46,7 +46,7 @@ import { SimpleBotOptions } from './simple-bot-options';
 export class MachineLearningAi implements BotAi {
 
   private possibleActions: PossibleActions[];
-  private legalActions: Action[];
+  private n_actions: number = 131;
   private resolvers: PromptResolver[];
   public possibleActionOffsets: Map<string, number>;
   public action_index: number = -1;
@@ -58,7 +58,7 @@ export class MachineLearningAi implements BotAi {
   ) {
     this.possibleActions = options.tactics.map(tactic => new tactic(options));
     this.resolvers = options.promptResolvers.map(resolver => new resolver(options));
-    this.legalActions = Array(131).fill(null);
+    this.n_actions = 131;
     this.possibleActionOffsets = new Map([
       ['PlayCardAction', 0],
       ['AttackAction', 90],
@@ -73,7 +73,8 @@ export class MachineLearningAi implements BotAi {
     return this.playerId;
   }
 
-  public registerLegalActions(possibleActions: Action[]): void {
+  public getLegalActions(possibleActions: Action[]): Action[] {
+    const legalActions: Action[] = Array(this.n_actions).fill(null);
     for (let i = 0; i < possibleActions.length; i++) {
       const possibleAction: Action = possibleActions[i];
       let offset: number = -1;
@@ -81,46 +82,47 @@ export class MachineLearningAi implements BotAi {
         case 'PLAY_CARD_ACTION': {
           const action = possibleAction as PlayCardAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset + action.target.index * 6 + action.handIndex] = action;
+          legalActions[offset + action.target.index * 6 + action.handIndex] = action;
           break;
         }
         case 'ATTACK_ACTION':
         {
           const action = possibleAction as AttackAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset + action.localIndex] = action;
+          legalActions[offset + action.localIndex] = action;
           break;
         }
         case 'RETREAT_ACTION':
         {
           const action = possibleAction as RetreatAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset + action.benchIndex] = action;
+          legalActions[offset + action.benchIndex] = action;
           break;
         }
         case 'USE_ABILITY_ACTION':
         {
           const action = possibleAction as UseAbilityAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset + action.target.index] = action;
+          legalActions[offset + action.target.index] = action;
           break;
         }
         case 'USE_STADIUM_ACTION':
         {
           const action = possibleAction as UseStadiumAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset] = action;
+          legalActions[offset] = action;
           break;
         }
         case 'USE_TRAINER_IN_PLAY_ACTION':
         {
           const action = possibleAction as UseTrainerInPlayAction;
           offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
-          this.legalActions[offset * action.target.index] = action;
+          legalActions[offset * action.target.index] = action;
           break;
         }
       }
     }
+    return legalActions;
   }
 
   public decodeNextAction(state: State, agent: DQNAgent): Action | undefined {
@@ -160,7 +162,6 @@ export class MachineLearningAi implements BotAi {
   }
 
   private decodePlayerTurnAction(player: Player, state: State, agent: DQNAgent): Action {
-    this.legalActions = [];
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
       const actions: Action[] = this.possibleActions[i].getPossibleActions(state, player);
@@ -179,17 +180,17 @@ export class MachineLearningAi implements BotAi {
     // Need to preprocess state here
     // Need to filter actions that cannot be performed
     
-    this.registerLegalActions(allPossibleActions);
+    const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
     const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
-    const foundIndex = action_indexes.find(index => this.legalActions[index]);
+    const foundIndex = action_indexes.find(index => legalActions[index]);
 
     if (foundIndex !== undefined) {
       // console.log('LEGAL ACTION!!!!');
       // console.log(this.legalActions[foundIndex]);
       
       this.action_index = foundIndex;
-      return this.legalActions[foundIndex];
+      return legalActions[foundIndex];
     }
 
     return new PassTurnAction(this.playerId);    
