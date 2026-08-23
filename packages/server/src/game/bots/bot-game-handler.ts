@@ -42,6 +42,8 @@ export class BotGameHandler {
     // console.log(state.players[0].bench);
     // console.log('Hand');
     // console.log(state.players[0].hand);
+    console.log('BEFORE ACTION DISPATCHING');
+    console.log(this.state);
     if (action) {
       await this.waitAndDispatch(action, action_index);
     }
@@ -73,11 +75,18 @@ export class BotGameHandler {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          const nextState: State = this.game.dispatch(this.client, action);
-          this.agent.trainingStep(this.state?.players, action_index, nextState?.players, this.ai!.getPlayerId());
+          console.log('DISPATCHING ACTION:');
+          console.log(action_index);
+          console.log(action);
+          this.game.dispatch(this.client, action);
+          // const nextState: State = this.game.dispatch(this.client, action);
+          // this.agent.trainingStep(this.state?.players, action_index, nextState?.players, this.ai!.getPlayerId());
         } catch (error) {
+          console.log('ERROR');
+          console.log(error);
           // continue regardless of error
         }
+        console.log('--------------------------');
         resolve();
       }, config.bots.actionDelay);
     });

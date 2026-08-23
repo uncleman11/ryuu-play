@@ -154,12 +154,13 @@ export class MachineLearningAi implements BotAi {
     const activePlayer = state.players[state.activePlayer];
     const isMyTurn = activePlayer.id === this.playerId;
     if (state.phase === GamePhase.PLAYER_TURN && isMyTurn) {
+      console.log('DECODE PLAYER TURN ACTION');
       return this.decodePlayerTurnAction(player, state, agent);
     }
   }
 
   private decodePlayerTurnAction(player: Player, state: State, agent: DQNAgent): Action {
-
+    this.legalActions = [];
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
       const actions: Action[] = this.possibleActions[i].getPossibleActions(state, player);
@@ -181,16 +182,17 @@ export class MachineLearningAi implements BotAi {
     this.registerLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
     const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
-    action_indexes.forEach((action_index, index) => {
-      if(this.legalActions[action_index]) {
-        return this.legalActions[action_index];
-      }
-    });
-    // const reward = Math.random() > 0.8 ? 1 : -0.1; // Reward logic
+    const foundIndex = action_indexes.find(index => this.legalActions[index]);
 
-    return new PassTurnAction(this.playerId);
- 
-    
+    if (foundIndex !== undefined) {
+      // console.log('LEGAL ACTION!!!!');
+      // console.log(this.legalActions[foundIndex]);
+      
+      this.action_index = foundIndex;
+      return this.legalActions[foundIndex];
+    }
+
+    return new PassTurnAction(this.playerId);    
   }
 
   private resolvePrompt(player: Player, state: State, prompt: Prompt<any>): Action {

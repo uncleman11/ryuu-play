@@ -16,7 +16,6 @@ export class PossiblePlayFossilActions extends PossibleActions {
     if (trainers.length === 0 || !emptyBenchSlot) {
       return [];
     }
-
     const target = this.getCardTarget(player, state, emptyBenchSlot);
     const possibleActions: Action[] = [];
 

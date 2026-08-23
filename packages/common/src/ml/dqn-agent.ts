@@ -43,11 +43,10 @@ export class DQNAgent {
 
   // --- 1. The Neural Network Factory ---
   private createModel(): tf.LayersModel {
-    console.log('I AM CREATING THE MODEL');
     const model = tf.sequential();
     model.add(tf.layers.dense({ units: 24, inputShape: [18], activation: 'relu' }));
     model.add(tf.layers.dense({ units: 24, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 2, activation: 'linear' })); // 2 actions
+    model.add(tf.layers.dense({ units: 131, activation: 'linear' })); // 131 actions
 
     model.compile({
       optimizer: tf.train.adam(LEARNING_RATE),
@@ -108,10 +107,9 @@ export class DQNAgent {
   }
 
   public act(state: number[]): number {
-    console.log('I AM ACTING');
     // Exploration vs Exploitation
     if (Math.random() < this.epsilon) {
-      return Math.floor(Math.random() * 2); // Random action
+      return Math.floor(Math.random() * 131); // Random action
     }
 
     return tf.tidy(() => {
@@ -146,7 +144,6 @@ export class DQNAgent {
   }
 
   public async train() {
-    console.log('I AM TRAINING');
     if (this.memory.length < BATCH_SIZE) return;
 
     const batch = this.memory.sample(BATCH_SIZE);
@@ -237,7 +234,6 @@ export class DQNAgent {
     }
 
     const release = await DQNAgent.mutex.acquire(); // Acquire lock
-    console.log('ACQUIRING LOCK');
     this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
     await this.train();
     

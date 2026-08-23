@@ -115,8 +115,6 @@ export class BotClient implements Client {
   }
 
   public async loadDeckByName(deckName: string): Promise<string[]> {
-    console.log(this.user.id);
-    console.log(deckName);
     const deckRows = await Deck.find({
       where: {
         user: { id: this.user.id },
@@ -127,8 +125,6 @@ export class BotClient implements Client {
 
     const decks = deckRows
       .map(d => JSON.parse(d.cards));
-    console.log('DECKS');
-    console.log(decks);
     if (decks.length === 0) {
       return [];
     }
@@ -154,15 +150,12 @@ export class BotClient implements Client {
   }
 
   public async createDeck(name:string, deckCards: string[]): Promise<void> {
-    console.log('CREATE DECK!');
     const deck = new Deck();
     const analyser = new DeckAnalyser(deckCards);
     deck.user.id = this.user.id;
     deck.name = name;
     deck.cards = JSON.stringify(deckCards);
     deck.isValid = analyser.isValid();
-    console.log('DECK CARDS');
-    console.log(deckCards);
     deck.formatNames = JSON.stringify(analyser.getDeckFormats().map(f => f.name));
     deck.cardTypes = JSON.stringify(analyser.getDeckType());
     

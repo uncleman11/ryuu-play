@@ -148,8 +148,7 @@ export class BotGamesTask {
     formatName: 'Base Sets'
   }};
 
-  private experiments = [['Rain Dance', 'Machakazam'], ['Machakazam', 'Machakazam']];
-
+  private experiments = [['Rain Dance', 'Machakazam']];
   private scheduleDuplicateGames = false;
 
   constructor(bots: BotClient[]) {
@@ -279,7 +278,6 @@ export class BotGamesTask {
 
       // We need to find 2 bots for these 2 specific names
       const targetNames = [deckName1, deckName2];
-      console.log(targetNames);
 
       for (const name of targetNames) {
         // let botFoundForThisName = false;
@@ -295,9 +293,6 @@ export class BotGamesTask {
               // Replace 'this.getCardsForName(name)' with your actual data lookup logic.
               const cards = this.decks[name].cards;
               await bot.createDeck(name, cards);
-            }
-            else {
-              console.log('Deck exists for bot ' + bot.id);
             }
             bot.defaultDeck = this.decks[name].cards;
 

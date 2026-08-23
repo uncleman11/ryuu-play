@@ -5,6 +5,10 @@ module.exports = {
     '@tensorflow/tfjs-node': 'commonjs @tensorflow/tfjs-node',
     '@tensorflow/tfjs-core': 'commonjs @tensorflow/tfjs-core'
   },
+  externalsType: 'module-import',
+  experiments: {
+    outputModule: true, // Required if static imports are present
+  },
   resolve: {
     fallback: {
       assert: require.resolve("assert/"),
