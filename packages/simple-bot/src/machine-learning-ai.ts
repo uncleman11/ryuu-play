@@ -161,7 +161,6 @@ export class MachineLearningAi implements BotAi {
     const activePlayer = state.players[state.activePlayer];
     const isMyTurn = activePlayer.id === this.playerId;
     if (state.phase === GamePhase.PLAYER_TURN && isMyTurn) {
-      console.log('DECODE PLAYER TURN ACTION');
       return this.decodePlayerTurnAction(player, state, agent);
     }
   }

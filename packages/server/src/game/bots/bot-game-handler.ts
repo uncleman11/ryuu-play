@@ -33,15 +33,7 @@ export class BotGameHandler {
 
     const action = this.ai.decodeNextAction(state, this.agent);
     const action_index = this.ai.action_index;
-    // console.log('STATE');    // console.log(state);
-    // console.log('ACTION:');
-    // console.log(action);
-    // console.log('Pokemon slot:');
-    // console.log(state.players[0].active);
-    // console.log('Bench');
-    // console.log(state.players[0].bench);
-    // console.log('Hand');
-    // console.log(state.players[0].hand);
+
     if (action) {
       await this.waitAndDispatch(action, action_index);
     }
@@ -73,18 +65,16 @@ export class BotGameHandler {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          console.log('DISPATCHING ACTION:');
-          console.log(action_index);
-          console.log(action);
-          this.game.dispatch(this.client, action);
           const nextState: State = this.game.dispatch(this.client, action);
           this.agent.trainingStep(this.state?.players, action_index, nextState?.players, this.ai!.getPlayerId());
+          console.log('DISPATCHED ACTION:');
+          console.log(action_index);
+          console.log(action);
         } catch (error) {
-          console.log('ERROR');
-          console.log(error);
+          // console.log('ERROR');
+          // console.log(error);
           // continue regardless of error
         }
-        console.log('--------------------------');
         resolve();
       }, config.bots.actionDelay);
     });
