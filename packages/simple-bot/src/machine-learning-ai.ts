@@ -183,7 +183,7 @@ export class MachineLearningAi implements BotAi {
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
     const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
-    const foundIndex = action_indexes.find(index => legalActions[index]);
+    const foundIndex = action_indexes.find(index => legalActions[index] !== null);
 
     if (foundIndex !== undefined) {
       // console.log('LEGAL ACTION!!!!');
