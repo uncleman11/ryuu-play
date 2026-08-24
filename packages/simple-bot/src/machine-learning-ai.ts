@@ -244,5 +244,4 @@ export class MachineLearningAi implements BotAi {
     }
     return true;
   }
-
 }

@@ -49,8 +49,12 @@ cardManager.defineFormat('Base Sets', [
 ]);
 
 // Define bots
-const botManager = BotManager.getInstance();
+const botManager = BotManager.getInstance(); // model path can go here.
 botManager.registerBot(new SimpleBot('bot1'));
 botManager.registerBot(new SimpleBot('bot2'));
 botManager.registerBot(new SimpleBot('bot3'));
 botManager.registerBot(new SimpleBot('bot4'));
+botManager.registerBot(new SimpleBot('bot5'));
+botManager.registerBot(new SimpleBot('bot6'));
+botManager.registerBot(new SimpleBot('bot7'));
+botManager.registerBot(new SimpleBot('bot8'));

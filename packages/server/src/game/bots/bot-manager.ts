@@ -15,10 +15,13 @@ export class BotManager {
   private bots: BotClient[] = [];
   private botGameArranger = new BotGamesTask(this.bots);
 
-  public static getInstance(): BotManager {
+  public static getInstance(checkpointPath?: string): BotManager {
     if (!BotManager.instance) {
       BotManager.instance = new BotManager();
       BotManager.agent = new DQNAgent();
+      if(checkpointPath) {
+        BotManager.agent.loadModel(checkpointPath);
+      }
     }
     return BotManager.instance;
   }

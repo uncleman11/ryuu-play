@@ -71,8 +71,8 @@ export class BotGameHandler {
           console.log(action_index);
           console.log(action);
         } catch (error) {
-          // console.log('ERROR');
-          // console.log(error);
+          console.log('ERROR');
+          console.log(error);
           // continue regardless of error
         }
         resolve();

@@ -148,7 +148,7 @@ export class BotGamesTask {
     formatName: 'Base Sets'
   }};
 
-  private experiments = [['Rain Dance', 'Machakazam']];
+  private experiments = [['Rain Dance', 'Machakazam'], ['Rain Dance', 'Rain Dance'], ['Machakazam', 'Machakazam'], ['Rain Dance', 'Machakazam']];
   private scheduleDuplicateGames = false;
 
   constructor(bots: BotClient[]) {

@@ -1,3 +1,5 @@
+// @ts-expect-error The import actually resolves fine but the editor could complain
+import fs from 'fs';
 import * as tf from '@tensorflow/tfjs-node';
 import { Mutex } from 'async-mutex';
 
@@ -39,6 +41,16 @@ export class DQNAgent {
     this.memory = new ReplayBuffer(MEMORY_SIZE);
     this.epsilon = EPSILON_START;
     this.episode = 0;
+  }
+
+  public async loadModel(checkpointPath: string): Promise<void> {
+    if (fs.existsSync(checkpointPath)) {
+      // Load from existing checkpoint if provided
+      console.log(`Loading checkpoint from ${checkpointPath}...`);
+      this.model = await tf.loadLayersModel(checkpointPath);
+      this.targetModel = await tf.loadLayersModel(checkpointPath);
+    } 
+    throw new Error('Model file not found in ' + checkpointPath +'.');
   }
 
   // --- 1. The Neural Network Factory ---
@@ -226,11 +238,17 @@ export class DQNAgent {
     const nextStatePrizes = nextStatePlayer.prizes.length;
 
     if (nextStatePlayer?.prizes.length == 0) {
+      console.log('Won all prize cards, reward +10!');
       reward = 10;
       done = true;
     }
     else if (nextStatePrizes < statePrizes) {
+      console.log('Won a prize card, reward +1!');
       reward = 1;
+    }
+    else
+    {
+      reward = -1;
     }
 
     const release = await DQNAgent.mutex.acquire(); // Acquire lock
@@ -242,6 +260,12 @@ export class DQNAgent {
     if (this.episode % 10 === 0) {
       this.updateTargetModel();
     }
+    if (this.episode % 500 === 0)
+    {
+      const savePath = `file://./models/checkpoint_epoch_${this.episode}`;
+      await this.model.save(savePath);
+    }
+
     release(); // Release lock
 
     console.log(done);
