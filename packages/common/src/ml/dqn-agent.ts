@@ -1,5 +1,4 @@
-// @ts-expect-error The import actually resolves fine but the editor could complain
-import fs from 'fs';
+import * as fs from 'fs';
 import * as tf from '@tensorflow/tfjs-node';
 import { Mutex } from 'async-mutex';
 
@@ -31,6 +30,8 @@ export class DQNAgent {
   public memory: ReplayBuffer;
   public epsilon: number;
   public episode: number;
+
+  private logPath: string;
   private static mutex = new Mutex();
 
 
@@ -41,6 +42,13 @@ export class DQNAgent {
     this.memory = new ReplayBuffer(MEMORY_SIZE);
     this.epsilon = EPSILON_START;
     this.episode = 0;
+    this.logPath = 'logs/loss.csv';
+
+    // Create the CSV file and write the header if it doesn't exist
+    if (!fs.existsSync(this.logPath)) {
+      const header = 'episode,loss,reward,epsilon\n';
+      fs.writeFileSync(this.logPath, header);
+    }
   }
 
   public async loadModel(checkpointPath: string): Promise<void> {
@@ -213,7 +221,8 @@ export class DQNAgent {
 
     // Extract the loss value from the first epoch [0]
     const loss = history.history.loss[0];
-    console.log('LOSS:' + loss);
+    const line = `${this.episode},${loss}}\n`;
+    fs.appendFileSync(this.logPath, line);
   
     // Manual disposal of all intermediate tensors to prevent memory leaks
     // tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
