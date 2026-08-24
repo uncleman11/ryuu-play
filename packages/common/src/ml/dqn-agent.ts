@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as tf from '@tensorflow/tfjs-node';
 import { Mutex } from 'async-mutex';
 
-import {EnergyCard} from '../store/card/energy-card';
-import {Player} from '../store/state/player';
+import { EnergyCard } from '../store/card/energy-card';
+import { Player } from '../store/state/player';
 
 interface Experience {
   state: number[];
@@ -163,8 +163,8 @@ export class DQNAgent {
     });
   }
 
-  public async train() {
-    if (this.memory.length < BATCH_SIZE) return;
+  public async train(): Promise<number> {
+    // if (this.memory.length < BATCH_SIZE) return;
 
     const batch = this.memory.sample(BATCH_SIZE);
 
@@ -223,47 +223,16 @@ export class DQNAgent {
     const loss = history.history.loss[0];
     const line = `${this.episode},${loss}}\n`;
     fs.appendFileSync(this.logPath, line);
+    return loss as number;
   
     // Manual disposal of all intermediate tensors to prevent memory leaks
     // tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
   }
 
-  public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id:number) {
-    let statePlayer: Player = new Player();
-    let nextStatePlayer: Player = new Player();
-    for (let i = 0; i < state!.length; i++) {
-      if (state![i].id === player_id) {
-        statePlayer = state![i];
-      }
-    }
-    for (let i = 0; i < nextState!.length; i++) {
-      if (nextState![i].id === player_id) {
-        nextStatePlayer = nextState![i];
-      }
-    }
-    let reward = 0;
-    let done: boolean = false;
-    const statePrizes = statePlayer.prizes.length;
-    const nextStatePrizes = nextStatePlayer.prizes.length;
-
-    if (nextStatePlayer?.prizes.length == 0) {
-      console.log('Won all prize cards, reward +10!');
-      reward = 10;
-      done = true;
-    }
-    else if (nextStatePrizes < statePrizes) {
-      console.log('Won a prize card, reward +1!');
-      reward = 1;
-    }
-    else
-    {
-      reward = -1;
-    }
-
+  public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, reward: number, done: boolean): Promise<number> {
     const release = await DQNAgent.mutex.acquire(); // Acquire lock
     this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
-    await this.train();
-    
+    const loss: number = await this.train();
 
     this.episode += 1;
     if (this.episode % 10 === 0) {
@@ -276,9 +245,8 @@ export class DQNAgent {
     }
 
     release(); // Release lock
-
-    console.log(done);
     console.log('Training step ran fine. Episode: ' + this.episode);
+    return loss;
   }
 }
 
