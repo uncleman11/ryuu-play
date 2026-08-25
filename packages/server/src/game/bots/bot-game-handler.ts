@@ -1,5 +1,5 @@
 import { Action, BotAi, BotAiFactory } from '@ptcg/common';
-import { DQNAgent, State } from '@ptcg/common';
+import { MCTSTree, State } from '@ptcg/common';
 import { Client } from '../client/client.interface';
 import { Game } from '../core/game';
 import { config } from '../../config';
@@ -9,14 +9,14 @@ export class BotGameHandler {
   private ai: BotAi | undefined;
   private state: State | undefined;
   private changeInProgress: boolean = false;
-  private agent: DQNAgent;
+  private agent: MCTSTree;
 
   constructor(
     private client: Client,
     private botAiFactory: BotAiFactory,
     public game: Game,
     deckPromise: Promise<string[]>,
-    agent:DQNAgent
+    agent: MCTSTree
   ) {
     this.agent = agent;
     this.waitForDeck(deckPromise);
@@ -31,7 +31,7 @@ export class BotGameHandler {
     this.state = undefined;
     this.changeInProgress = true;
 
-    const action = this.ai.decodeNextAction(state, this.agent);
+    const action = await this.ai.decodeNextAction(this.client.id, state, this.agent);
     const action_index = this.ai.action_index;
 
     if (action) {
@@ -66,7 +66,7 @@ export class BotGameHandler {
       setTimeout(() => {
         try {
           const nextState: State = this.game.dispatch(this.client, action);
-          this.agent.trainingStep(this.state?.players, action_index, nextState?.players, this.ai!.getPlayerId());
+          this.agent.update(this.client.id, this.ai?.getPlayerId(), this.state?.players, action_index, nextState?.players);
           console.log('DISPATCHED ACTION:');
           console.log(action_index);
           console.log(action);

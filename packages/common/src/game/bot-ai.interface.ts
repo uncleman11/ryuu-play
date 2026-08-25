@@ -1,10 +1,10 @@
-import { DQNAgent } from '../ml';
+import { MCTSTree } from '../ml';
 import { Action, State } from '../store';
 
 export interface BotAi {
   action_index: number;
   getPlayerId(): number;
-  decodeNextAction(state: State, agent: DQNAgent): Action | undefined;
+  decodeNextAction(clientId: number, state: State, agent: MCTSTree): Promise<Action | undefined>;
 }
 
 export abstract class BotAiFactory {

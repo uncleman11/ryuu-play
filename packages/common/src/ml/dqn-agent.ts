@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as tf from '@tensorflow/tfjs-node';
-import { Mutex } from 'async-mutex';
 
 import { EnergyCard } from '../store/card/energy-card';
 import { Player } from '../store/state/player';
@@ -32,7 +31,6 @@ export class DQNAgent {
   public episode: number;
 
   private logPath: string;
-  private static mutex = new Mutex();
 
 
   constructor() {
@@ -230,7 +228,7 @@ export class DQNAgent {
   }
 
   public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, reward: number, done: boolean): Promise<number> {
-    const release = await DQNAgent.mutex.acquire(); // Acquire lock
+    // const release = await DQNAgent.mutex.acquire(); // Acquire lock
     this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
     const loss: number = await this.train();
 
@@ -238,13 +236,8 @@ export class DQNAgent {
     if (this.episode % 10 === 0) {
       this.updateTargetModel();
     }
-    if (this.episode % 500 === 0)
-    {
-      const savePath = `file://./models/checkpoint_epoch_${this.episode}`;
-      await this.model.save(savePath);
-    }
 
-    release(); // Release lock
+    // release(); // Release lock
     console.log('Training step ran fine. Episode: ' + this.episode);
     return loss;
   }

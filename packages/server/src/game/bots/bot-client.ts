@@ -7,7 +7,7 @@ import { GameMessage } from '@ptcg/common';
 import { User, Message, Deck } from '../../storage';
 import { Core } from '../core/core';
 import { State,  } from '@ptcg/common';
-import { DQNAgent, GameSettings } from '@ptcg/common';
+import { MCTSTree, GameSettings } from '@ptcg/common';
 import { BotGameHandler } from './bot-game-handler';
 
 export class BotClient implements Client {
@@ -19,9 +19,9 @@ export class BotClient implements Client {
   public games: Game[] = [];
   public defaultDeck: string[] = [];
   private gameHandlers: BotGameHandler[] = [];
-  private agent: DQNAgent;
+  private agent: MCTSTree;
 
-  constructor(private botAiFactory: BotAiFactory, agent:DQNAgent) {
+  constructor(private botAiFactory: BotAiFactory, agent:MCTSTree) {
     this.user = new User();
     this.user.name = botAiFactory.name;
     this.name = botAiFactory.name;

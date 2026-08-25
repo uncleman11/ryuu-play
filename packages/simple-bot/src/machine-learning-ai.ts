@@ -2,46 +2,11 @@ import {
   Player, State, PassTurnAction, Action, GamePhase, Prompt,
   InvitePlayerPrompt, StateLog, ResolvePromptAction, GameLog, BotAi,
   Simulator, PlayCardAction, AttackAction, RetreatAction, UseAbilityAction,
-  UseStadiumAction, UseTrainerInPlayAction, DQNAgent
+  UseStadiumAction, UseTrainerInPlayAction, MCTSTree
 } from '@ptcg/common';
 import { PromptResolver } from './prompt-resolver/prompt-resolver';
 import { PossibleActions } from './possible-actions/possible-actions';
 import { SimpleBotOptions } from './simple-bot-options';
-
-
-// --- 4. Execution Loop ---
-// async function run() {
-//   const agent = new DQNAgent();
-
-//   console.log('Training started...');
-
-//   for (let episode = 0; episode < 100; episode++) {
-//     // Mock Environment State: [position, velocity, distanceToGoal, angle]
-//     let state: number[] = [Math.random(), Math.random(), Math.random(), Math.random()];
-//     let totalReward = 0;
-
-//     for (let step = 0; step < 50; step++) {
-//       const action = agent.act(state);
-
-//       // Mock environment response
-//       const nextState: number[] = [Math.random(), Math.random(), Math.random(), Math.random()];
-//       const reward = Math.random() > 0.8 ? 1 : -0.1; // Reward logic
-//       const done = step === 49;
-
-//       agent.memory.add(state, action, reward, nextState, done);
-//       await agent.train();
-
-//       state = nextState;
-//       totalReward += reward;
-//     }
-
-//     if (episode % 10 === 0) {
-//       agent.updateTargetModel();
-//       console.log(`Episode: ${episode} | Reward: ${totalReward.toFixed(2)} | Epsilon: ${agent.epsilon.toFixed(3)}`);
-//     }
-//   }
-//   console.log('Training complete.');
-// }
 
 export class MachineLearningAi implements BotAi {
 
@@ -130,7 +95,7 @@ export class MachineLearningAi implements BotAi {
     return legalActions;
   }
 
-  public decodeNextAction(state: State, agent: DQNAgent): Action | undefined {
+  public async decodeNextAction(clientId: number, state: State, agent: MCTSTree): Promise<Action | undefined> {
     let player: Player | undefined;
     // Get the player object whose action needs to be decoded
     for (let i = 0; i < state.players.length; i++) {
@@ -161,11 +126,11 @@ export class MachineLearningAi implements BotAi {
     const activePlayer = state.players[state.activePlayer];
     const isMyTurn = activePlayer.id === this.playerId;
     if (state.phase === GamePhase.PLAYER_TURN && isMyTurn) {
-      return this.decodePlayerTurnAction(player, state, agent);
+      return this.decodePlayerTurnAction(clientId, player, state, agent);
     }
   }
 
-  private decodePlayerTurnAction(player: Player, state: State, agent: DQNAgent): Action {
+  private async decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): Promise<Action> {
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
       const actions: Action[] = this.possibleActions[i].getPossibleActions(state, player);
@@ -186,30 +151,33 @@ export class MachineLearningAi implements BotAi {
     
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
-    const action_indexes = agent.getRankedActions(preprocessedState); // Get action indexes ranked in descending order
-
-    let foundIndex: number | undefined = -1;
-    if(this.action_retries >= this.max_action_retries) {
-      console.log('TRIED TOO MANY TIMES THE SAME ACTION!');
-      foundIndex = action_indexes.find(index => legalActions[index] !== null && index !== this.last_action_index);
-    }
-    else{
-      foundIndex = action_indexes.find(index => legalActions[index] !== null);
-    }
-
-    if (foundIndex !== undefined) {
-      this.action_index = foundIndex;
-      if (foundIndex == this.last_action_index) {
+    const legalIndexes: number[] | undefined = [];
+    
+    legalActions.forEach((legalAction, index) => {
+      if(this.action_retries >= this.max_action_retries) {
+        if(legalActions[index] !== null && index !== this.last_action_index){
+          legalIndexes.push(index);
+        }
+      }
+      else if(legalActions[index]){
+        legalIndexes.push(index);
+      }
+    });
+    
+    const actionIndex = await agent.selectAction(clientId, preprocessedState, legalIndexes); // Get action indexes ranked in descending order
+    
+    if (actionIndex !== undefined) {
+      this.action_index = actionIndex;
+      if (actionIndex == this.last_action_index) {
         this.action_retries++;
       }
       else {
         this.action_retries = 0;
       }
-      this.last_action_index = foundIndex;
-      return legalActions[foundIndex];
+      this.last_action_index = actionIndex;
+      return legalActions[actionIndex];
     }
-
-    return new PassTurnAction(this.playerId);    
+    return new PassTurnAction(this.playerId);
   }
 
   private resolvePrompt(player: Player, state: State, prompt: Prompt<any>): Action {

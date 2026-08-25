@@ -1,7 +1,7 @@
 import { BotClient } from './bot-client';
 import { Core } from '../core/core';
 import { BotAiFactory, GameError } from '@ptcg/common';
-import { DQNAgent, GameMessage } from '@ptcg/common';
+import { MCTSTree, GameMessage } from '@ptcg/common';
 import { User } from '../../storage';
 import { config } from '../../config';
 import { Md5 } from '../../utils/md5';
@@ -10,7 +10,7 @@ import { BotGamesTask } from './bot-games-task';
 export class BotManager {
 
   private static instance: BotManager;
-  private static agent: DQNAgent;
+  private static agent: MCTSTree;
 
   private bots: BotClient[] = [];
   private botGameArranger = new BotGamesTask(this.bots);
@@ -18,7 +18,7 @@ export class BotManager {
   public static getInstance(checkpointPath?: string): BotManager {
     if (!BotManager.instance) {
       BotManager.instance = new BotManager();
-      BotManager.agent = new DQNAgent();
+      BotManager.agent = new MCTSTree();
       if(checkpointPath) {
         BotManager.agent.loadModel(checkpointPath);
       }

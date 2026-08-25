@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import { Mutex } from 'async-mutex';
+
 import { DQNAgent } from './dqn-agent';
 import { Player } from '../store/state/player';
 
@@ -8,6 +11,8 @@ import { Player } from '../store/state/player';
 
 // --- 2. MCTS Components ---
 
+const N_SAVE_EVERY_EPISODE = 50;
+
 class MCTSNode {
   public children: Map<number, MCTSNode> = new Map();
   public visits: number = 0;
@@ -17,41 +22,82 @@ class MCTSNode {
   constructor(public state: number[], public parentNode?: MCTSNode) {
     this.parentNode = parentNode;
   }
+
+  toJSON() {
+    const obj: any = {
+      state: this.state,
+      visits: this.visits,
+      value: this.value,
+      children: {}
+    };
+    // Convert Map to Object for JSON compatibility
+    this.children.forEach((child, action) => {
+      obj.children[action] = child.toJSON();
+    });
+    return obj;
+  }
 }
 
 export class MCTSTree {
-  private root: MCTSNode;
+  private roots: Map<number, MCTSNode> = new Map();
+  private botCursors: Map<number, MCTSNode> = new Map();
   private agent: DQNAgent;
   private inputSize: number = 18;
+  private static selectActionmutex = new Mutex();
+  private static updateMutex = new Mutex();
 
-  constructor(agent: DQNAgent) {
-    this.agent = agent;
-    // Initialize root with a dummy state (will be updated by search)
-    this.root = new MCTSNode(Array(this.inputSize).fill(0));
+  constructor() {
+    this.agent = new DQNAgent();
   }
-
   /**
-   * The main entry point for the environment.
-   * Returns the best action based on tree search.
-   */
-  public selectAction(initialState: number[]): number {
-    // Update root with current state
-    this.root = new MCTSNode(initialState);
+   * Called by the environment for each bot.
+   * Returns the best action for a specific player_id.
+  */
+  public async selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined): Promise<number> {
+    console.log('ACQUIRE LOCK AT SELECT ACTION TIME');
+    const release = await MCTSTree.selectActionmutex.acquire();
+    let bestAction: number = -1;
+    try {
+      // 1. Ensure this bot has its own root in the tree
+      if (!this.roots.has(clientId)) {
+        this.roots.set(clientId, new MCTSNode(initialState));
+      }
 
-    // 1. Get ranked actions from DQN
-    const rankedActions = this.agent.getRankedActions(initialState);
+      // 2. Set the bot's current cursor to its root
+      this.botCursors.set(clientId, this.roots.get(clientId)!);
+      const root = this.roots.get(clientId)!;
 
-    // 2. Since we cannot simulate multiple paths and must use the best action:
-    // We pick the first action in the ranked list (the highest Q-value).
-    const bestAction = rankedActions[0];
+      const rankedActions = this.agent.getRankedActions(initialState);
 
-    // 3. Expand the tree with this best action
-    // In a real MCTS, expansion would create many children. 
-    // Here, we create one child representing our chosen path.
-    // We use a dummy state for the next step as it's provided by the environment return.
-    const nextStateStub = new MCTSNode(new Array(18).fill(0), this.root);
-    this.root.children.set(bestAction, nextStateStub);
+      // Find the best legal action from the DQN's ranked list
+      for (const rankedAction of rankedActions) {
+        if (legalActionIndexes?.includes(rankedAction)) {
+          bestAction = rankedAction;
+          break;
+        }
+      }
 
+      // Fallback to top-ranked if none are legal
+      if (bestAction === -1 && rankedActions.length > 0) {
+        bestAction = rankedActions[0];
+      }
+
+      // 3. Expansion
+      if (bestAction !== -1) {
+        // Create a child node for this specific bot's action
+        // We use a dummy state because the actual next state is provided by the environment
+        const nextStateStub = new MCTSNode(new Array(this.inputSize).fill(0), root);
+        root.children.set(bestAction, nextStateStub);
+
+        // The bot's next "cursor" will be this child
+        this.botCursors.set(clientId, nextStateStub);
+      }
+    }
+    catch(error) {
+      console.log('Error during selectAction');
+    }
+    console.log('RELEASE LOCK');
+    release();
     return bestAction;
   }
 
@@ -62,54 +108,108 @@ export class MCTSTree {
     return this.agent.getRankedActions(state);
   }
 
+  public preprocessGameState(players: Player[]): number[] {
+    return this.agent.preprocessGameState(players);
+  }
+
+  public async loadModel(checkpointPath: string): Promise<void> {
+    await this.agent.loadModel(checkpointPath);
+  }
+
   /**
-   * Updates the MCTS and DQN with new data from the environment
+   * Updates the MCTS and DQN for a specific player_id.
    */
-  public async update(state: Player[] | undefined, action: number, nextState: Player[] | undefined, player_id: number): Promise<number> {
-    // 1. Backpropagate Reward: Update the root node's value based on the result
-    this.root.visits++;
+  public async update(clientId: number, playerId: number | undefined, state: Player[] | undefined, action: number, nextState: Player[] | undefined): Promise<number> {
+    console.log('ACQUIRE LOCK AT UPDATE TIME');
+    const release = await MCTSTree.updateMutex.acquire();
+    let loss: number = -1;
+    try {
+      // 1. Find the specific root for this bot
+      const root = this.roots.get(clientId);
+      if (!root) {
+        console.log('RELEASE LOCK');
+        release();
+        return -1;
+      }
+      // 2. Find the child node that corresponds to the action taken
+      const actionNode = root.children.get(action);
+      if (!actionNode) {
+        console.error(`Action ${action} not found in tree for client ${clientId}`);
+        console.log('RELEASE LOCK');
+        release();
+        return 0;
+      }
+      let statePlayer: Player = new Player();
+      let nextStatePlayer: Player = new Player();
+      let reward = 0;
+      let done: boolean = false;
+      for (let i = 0; i < state!.length; i++) {
+        if (state![i].id === playerId) {
+          statePlayer = state![i];
+        }
+      }
+      for (let i = 0; i < nextState!.length; i++) {
+        if (nextState![i].id === playerId) {
+          nextStatePlayer = nextState![i];
+        }
+      }
+      const statePrizes = statePlayer.prizes.length;
+      const nextStatePrizes = nextStatePlayer.prizes.length;
 
-    let statePlayer: Player = new Player();
-    let nextStatePlayer: Player = new Player();
-    let reward = 0;
-    let done: boolean = false;
-    for (let i = 0; i < state!.length; i++) {
-      if (state![i].id === player_id) {
-        statePlayer = state![i];
+
+      if (nextStatePlayer?.prizes.length == 0) {
+        console.log('Won all prize cards, reward +10!');
+        reward = 10;
+        done = true;
+      }
+      else if (nextStatePrizes < statePrizes) {
+        console.log('Won a prize card, reward +1!');
+        reward = 1;
+      }
+      else
+      {
+        reward = -1;
+      }
+
+      // 3. Backpropagate Reward
+      // We update the action node and all its ancestors
+      let currentNode: MCTSNode | null = actionNode;
+      while (currentNode !== null) {
+        currentNode.visits++;
+        currentNode.value += reward;
+        currentNode = currentNode.parent;
+      }
+
+      // 4. Train the shared DQN model with this specific experience
+      // This ensures that even though bots are independent, they are 
+      // contributing to a shared "intelligence."
+      loss = await this.agent.trainingStep(state, action, nextState, reward, done);
+
+      if (this.agent.episode % N_SAVE_EVERY_EPISODE === 0) {
+        await this.saveToFile();
       }
     }
-    for (let i = 0; i < nextState!.length; i++) {
-      if (nextState![i].id === player_id) {
-        nextStatePlayer = nextState![i];
-      }
+    catch(error) {
+      throw new Error('Error during tree update.');
     }
-    const statePrizes = statePlayer.prizes.length;
-    const nextStatePrizes = nextStatePlayer.prizes.length;
-
-    if (nextStatePlayer?.prizes.length == 0) {
-      console.log('Won all prize cards, reward +10!');
-      reward = 10;
-      done = true;
-    }
-    else if (nextStatePrizes < statePrizes) {
-      console.log('Won a prize card, reward +1!');
-      reward = 1;
-    }
-    else
-    {
-      reward = -1;
-    }
-    this.root.value += reward;
-    
-
-    // 2. Update the internal tree structure
-    // (Logic to link the state -> action -> nextState nodes would go here)
-    
-    // 3. Train the underlying DQN model with this specific experience
-    const loss = await this.agent.trainingStep(state, action, nextState, reward, done);
-
+    console.log('RELEASE LOCK');
+    release();
     return loss;
   }
+
+  public async saveToFile() {
+    const treeData: any = {};
+    this.roots.forEach((root, id) => {
+      treeData[id] = root.toJSON();
+    });
+    const data = JSON.stringify(treeData, null, 2);
+    const modelSavePath = `file://./models/checkpoint_epoch_${this.agent.episode}`;
+    await this.agent.model.save(modelSavePath);
+    const treeSavePath = `models/tree_data_${this.agent.episode}.json`;
+    fs.writeFileSync(treeSavePath, data, 'utf8');
+    console.log(`Tree saved to ${treeSavePath}`);
+  }
+
 }
 
 // --- Usage Example ---
