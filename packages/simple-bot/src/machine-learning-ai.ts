@@ -146,10 +146,8 @@ export class MachineLearningAi implements BotAi {
     if (allPossibleActions.length == 0) {
       return new PassTurnAction(this.playerId);
     }
-
-    // Need to preprocess state here
-    // Need to filter actions that cannot be performed
     
+    // Need to filter actions that cannot be performed
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
     const legalIndexes: number[] | undefined = [];
@@ -160,7 +158,7 @@ export class MachineLearningAi implements BotAi {
           legalIndexes.push(index);
         }
       }
-      else if(legalActions[index]){
+      else if(legalActions[index] !== null){
         legalIndexes.push(index);
       }
     });
@@ -177,6 +175,8 @@ export class MachineLearningAi implements BotAi {
       }
       this.last_action_index = actionIndex;
       console.log('Return from Legal Action');
+      console.log('LEGAL ACTION RETURNED');
+      console.log(legalActions[actionIndex]);
       return legalActions[actionIndex];
     }
     console.log('Return from Legal Pass decode Turn Action');

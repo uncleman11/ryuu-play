@@ -32,21 +32,20 @@ export class BotGameHandler {
     this.changeInProgress = true;
 
     const action = this.ai.decodeNextAction(this.client.id, state, this.agent);
-    console.log('EXIT DECODE NEXT ACTION');
     const action_index = this.ai.action_index;
 
     if (action) {
       await this.waitAndDispatch(action, action_index);
     }
-    console.log('AFTER WAIT AND DISPATCH');
+    else {
+      throw new Error('No action has been performed, game could go dead.');
+    }
 
     this.changeInProgress = false;
     // A state change was ignored, because we were processing
     if (this.state) {
       this.onStateChange(this.state);
-      console.log('INSIDE THIS STATE CONDITION');
     }
-    console.log('END OF ONSTATECHANGE');
   }
 
   private async waitForDeck(deckPromise: Promise<string[]>): Promise<void> {

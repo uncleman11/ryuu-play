@@ -53,7 +53,7 @@ export class MCTSTree {
    * Returns the best action for a specific player_id.
   */
   public selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined): number {
-    console.log('ACQUIRE LOCK AT SELECT ACTION TIME' + clientId);
+    // console.log('ACQUIRE LOCK AT SELECT ACTION TIME' + clientId);
     // const release = await MCTSTree.selectActionmutex.acquire();
     let bestAction: number = -1;
     // 1. Ensure this bot has its own root in the tree
@@ -75,11 +75,6 @@ export class MCTSTree {
       }
     }
 
-    // Fallback to top-ranked if none are legal
-    if (bestAction === -1 && rankedActions.length > 0) {
-      bestAction = rankedActions[0];
-    }
-
     // 3. Expansion
     if (bestAction !== -1) {
       // Create a child node for this specific bot's action
@@ -90,7 +85,6 @@ export class MCTSTree {
       // The bot's next "cursor" will be this child
       this.botCursors.set(clientId, nextStateStub);
     }
-    console.log('RELEASE LOCK 0');
     // release();
     return bestAction;
   }
@@ -121,7 +115,6 @@ export class MCTSTree {
       // 1. Find the specific root for this bot
       const root = this.roots.get(clientId);
       if (!root) {
-        console.log('RELEASE LOCK 1');
         release();
         return -1;
       }
@@ -129,7 +122,6 @@ export class MCTSTree {
       const actionNode = root.children.get(action);
       if (!actionNode) {
         console.error(`Action ${action} not found in tree for client ${clientId}`);
-        console.log('RELEASE LOCK 2');
         release();
         return 0;
       }
@@ -172,7 +164,6 @@ export class MCTSTree {
         currentNode.visits++;
         currentNode.value += reward;
         currentNode = currentNode.parent;
-        console.log('LOOPING THROUGH NODES');
       }
 
       // 4. Train the shared DQN model with this specific experience
@@ -187,7 +178,6 @@ export class MCTSTree {
     catch(error) {
       console.log(error);
     }
-    console.log('RELEASE LOCK 3' + clientId);
     release();
     return loss;
   }
