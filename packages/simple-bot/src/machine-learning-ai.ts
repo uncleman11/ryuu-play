@@ -95,7 +95,7 @@ export class MachineLearningAi implements BotAi {
     return legalActions;
   }
 
-  public async decodeNextAction(clientId: number, state: State, agent: MCTSTree): Promise<Action | undefined> {
+  public decodeNextAction(clientId: number, state: State, agent: MCTSTree): Action | undefined {
     let player: Player | undefined;
     // Get the player object whose action needs to be decoded
     for (let i = 0; i < state.players.length; i++) {
@@ -126,11 +126,12 @@ export class MachineLearningAi implements BotAi {
     const activePlayer = state.players[state.activePlayer];
     const isMyTurn = activePlayer.id === this.playerId;
     if (state.phase === GamePhase.PLAYER_TURN && isMyTurn) {
+      console.log('RETURN DECODE NEXT ACTION');
       return this.decodePlayerTurnAction(clientId, player, state, agent);
     }
   }
 
-  private async decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): Promise<Action> {
+  private decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): Action {
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
       const actions: Action[] = this.possibleActions[i].getPossibleActions(state, player);
@@ -164,8 +165,8 @@ export class MachineLearningAi implements BotAi {
       }
     });
     
-    const actionIndex = await agent.selectAction(clientId, preprocessedState, legalIndexes); // Get action indexes ranked in descending order
-    
+    const actionIndex = agent.selectAction(clientId, preprocessedState, legalIndexes); // Get action indexes ranked in descending order
+    console.log('AFTER SELECT ACTION');
     if (actionIndex !== undefined) {
       this.action_index = actionIndex;
       if (actionIndex == this.last_action_index) {
@@ -175,8 +176,10 @@ export class MachineLearningAi implements BotAi {
         this.action_retries = 0;
       }
       this.last_action_index = actionIndex;
+      console.log('Return from Legal Action');
       return legalActions[actionIndex];
     }
+    console.log('Return from Legal Pass decode Turn Action');
     return new PassTurnAction(this.playerId);
   }
 

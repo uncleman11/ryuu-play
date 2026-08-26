@@ -43,7 +43,6 @@ export class MCTSTree {
   private botCursors: Map<number, MCTSNode> = new Map();
   private agent: DQNAgent;
   private inputSize: number = 18;
-  private static selectActionmutex = new Mutex();
   private static updateMutex = new Mutex();
 
   constructor() {
@@ -53,51 +52,46 @@ export class MCTSTree {
    * Called by the environment for each bot.
    * Returns the best action for a specific player_id.
   */
-  public async selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined): Promise<number> {
-    console.log('ACQUIRE LOCK AT SELECT ACTION TIME');
-    const release = await MCTSTree.selectActionmutex.acquire();
+  public selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined): number {
+    console.log('ACQUIRE LOCK AT SELECT ACTION TIME' + clientId);
+    // const release = await MCTSTree.selectActionmutex.acquire();
     let bestAction: number = -1;
-    try {
-      // 1. Ensure this bot has its own root in the tree
-      if (!this.roots.has(clientId)) {
-        this.roots.set(clientId, new MCTSNode(initialState));
-      }
+    // 1. Ensure this bot has its own root in the tree
+    if (!this.roots.has(clientId)) {
+      this.roots.set(clientId, new MCTSNode(initialState));
+    }
 
-      // 2. Set the bot's current cursor to its root
-      this.botCursors.set(clientId, this.roots.get(clientId)!);
-      const root = this.roots.get(clientId)!;
+    // 2. Set the bot's current cursor to its root
+    this.botCursors.set(clientId, this.roots.get(clientId)!);
+    const root = this.roots.get(clientId)!;
 
-      const rankedActions = this.agent.getRankedActions(initialState);
+    const rankedActions = this.agent.getRankedActions(initialState);
 
-      // Find the best legal action from the DQN's ranked list
-      for (const rankedAction of rankedActions) {
-        if (legalActionIndexes?.includes(rankedAction)) {
-          bestAction = rankedAction;
-          break;
-        }
-      }
-
-      // Fallback to top-ranked if none are legal
-      if (bestAction === -1 && rankedActions.length > 0) {
-        bestAction = rankedActions[0];
-      }
-
-      // 3. Expansion
-      if (bestAction !== -1) {
-        // Create a child node for this specific bot's action
-        // We use a dummy state because the actual next state is provided by the environment
-        const nextStateStub = new MCTSNode(new Array(this.inputSize).fill(0), root);
-        root.children.set(bestAction, nextStateStub);
-
-        // The bot's next "cursor" will be this child
-        this.botCursors.set(clientId, nextStateStub);
+    // Find the best legal action from the DQN's ranked list
+    for (const rankedAction of rankedActions) {
+      if (legalActionIndexes?.includes(rankedAction)) {
+        bestAction = rankedAction;
+        break;
       }
     }
-    catch(error) {
-      console.log('Error during selectAction');
+
+    // Fallback to top-ranked if none are legal
+    if (bestAction === -1 && rankedActions.length > 0) {
+      bestAction = rankedActions[0];
     }
-    console.log('RELEASE LOCK');
-    release();
+
+    // 3. Expansion
+    if (bestAction !== -1) {
+      // Create a child node for this specific bot's action
+      // We use a dummy state because the actual next state is provided by the environment
+      const nextStateStub = new MCTSNode(new Array(this.inputSize).fill(0), root);
+      root.children.set(bestAction, nextStateStub);
+
+      // The bot's next "cursor" will be this child
+      this.botCursors.set(clientId, nextStateStub);
+    }
+    console.log('RELEASE LOCK 0');
+    // release();
     return bestAction;
   }
 
@@ -120,14 +114,14 @@ export class MCTSTree {
    * Updates the MCTS and DQN for a specific player_id.
    */
   public async update(clientId: number, playerId: number | undefined, state: Player[] | undefined, action: number, nextState: Player[] | undefined): Promise<number> {
-    console.log('ACQUIRE LOCK AT UPDATE TIME');
+    console.log('ACQUIRE LOCK AT UPDATE TIME' + clientId);
     const release = await MCTSTree.updateMutex.acquire();
     let loss: number = -1;
     try {
       // 1. Find the specific root for this bot
       const root = this.roots.get(clientId);
       if (!root) {
-        console.log('RELEASE LOCK');
+        console.log('RELEASE LOCK 1');
         release();
         return -1;
       }
@@ -135,7 +129,7 @@ export class MCTSTree {
       const actionNode = root.children.get(action);
       if (!actionNode) {
         console.error(`Action ${action} not found in tree for client ${clientId}`);
-        console.log('RELEASE LOCK');
+        console.log('RELEASE LOCK 2');
         release();
         return 0;
       }
@@ -178,6 +172,7 @@ export class MCTSTree {
         currentNode.visits++;
         currentNode.value += reward;
         currentNode = currentNode.parent;
+        console.log('LOOPING THROUGH NODES');
       }
 
       // 4. Train the shared DQN model with this specific experience
@@ -190,9 +185,9 @@ export class MCTSTree {
       }
     }
     catch(error) {
-      throw new Error('Error during tree update.');
+      console.log(error);
     }
-    console.log('RELEASE LOCK');
+    console.log('RELEASE LOCK 3' + clientId);
     release();
     return loss;
   }
