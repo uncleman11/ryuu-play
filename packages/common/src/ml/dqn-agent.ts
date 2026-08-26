@@ -228,7 +228,6 @@ export class DQNAgent {
   }
 
   public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, reward: number, done: boolean): Promise<number> {
-    // const release = await DQNAgent.mutex.acquire(); // Acquire lock
     this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
     const loss: number = await this.train();
 
@@ -237,7 +236,6 @@ export class DQNAgent {
       this.updateTargetModel();
     }
 
-    // release(); // Release lock
     console.log('Training step ran fine. Episode: ' + this.episode);
     return loss;
   }

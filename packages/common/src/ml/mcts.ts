@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { Mutex } from 'async-mutex';
 
 import { DQNAgent } from './dqn-agent';
+import { Action } from '../store/actions/action';
 import { Player } from '../store/state/player';
 
 /**
@@ -17,7 +18,9 @@ class MCTSNode {
   public children: Map<number, MCTSNode> = new Map();
   public visits: number = 0;
   public value: number = 0;
+  public actionName: string = '';
   public parent: MCTSNode | null = null;
+  // public updateNodeMutex = new Mutex();
 
   constructor(public state: number[], public parentNode?: MCTSNode) {
     this.parentNode = parentNode;
@@ -25,9 +28,9 @@ class MCTSNode {
 
   toJSON() {
     const obj: any = {
-      state: this.state,
       visits: this.visits,
       value: this.value,
+      actionName: this.actionName,
       children: {}
     };
     // Convert Map to Object for JSON compatibility
@@ -52,7 +55,7 @@ export class MCTSTree {
    * Called by the environment for each bot.
    * Returns the best action for a specific player_id.
   */
-  public selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined): number {
+  public selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined, legalActions: Action[]): number {
     // console.log('ACQUIRE LOCK AT SELECT ACTION TIME' + clientId);
     // const release = await MCTSTree.selectActionmutex.acquire();
     let bestAction: number = -1;
@@ -80,6 +83,7 @@ export class MCTSTree {
       // Create a child node for this specific bot's action
       // We use a dummy state because the actual next state is provided by the environment
       const nextStateStub = new MCTSNode(new Array(this.inputSize).fill(0), root);
+      nextStateStub.actionName = legalActions[bestAction].type;
       root.children.set(bestAction, nextStateStub);
 
       // The bot's next "cursor" will be this child
@@ -108,21 +112,17 @@ export class MCTSTree {
    * Updates the MCTS and DQN for a specific player_id.
    */
   public async update(clientId: number, playerId: number | undefined, state: Player[] | undefined, action: number, nextState: Player[] | undefined): Promise<number> {
-    console.log('ACQUIRE LOCK AT UPDATE TIME' + clientId);
-    const release = await MCTSTree.updateMutex.acquire();
     let loss: number = -1;
     try {
       // 1. Find the specific root for this bot
       const root = this.roots.get(clientId);
       if (!root) {
-        release();
         return -1;
       }
       // 2. Find the child node that corresponds to the action taken
       const actionNode = root.children.get(action);
       if (!actionNode) {
         console.error(`Action ${action} not found in tree for client ${clientId}`);
-        release();
         return 0;
       }
       let statePlayer: Player = new Player();
@@ -169,16 +169,18 @@ export class MCTSTree {
       // 4. Train the shared DQN model with this specific experience
       // This ensures that even though bots are independent, they are 
       // contributing to a shared "intelligence."
+      const release = await MCTSTree.updateMutex.acquire();
       loss = await this.agent.trainingStep(state, action, nextState, reward, done);
 
       if (this.agent.episode % N_SAVE_EVERY_EPISODE === 0) {
         await this.saveToFile();
       }
+      release();
     }
     catch(error) {
       console.log(error);
     }
-    release();
+
     return loss;
   }
 

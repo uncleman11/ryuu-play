@@ -163,7 +163,7 @@ export class MachineLearningAi implements BotAi {
       }
     });
     
-    const actionIndex = agent.selectAction(clientId, preprocessedState, legalIndexes); // Get action indexes ranked in descending order
+    const actionIndex = agent.selectAction(clientId, preprocessedState, legalIndexes, legalActions); // Get action indexes ranked in descending order
     console.log('AFTER SELECT ACTION');
     if (actionIndex !== -1) {
       this.action_index = actionIndex;
