@@ -37,9 +37,6 @@ export class BotGameHandler {
     if (action) {
       await this.waitAndDispatch(action, action_index);
     }
-    else {
-      throw new Error('No action has been performed, game could go dead.');
-    }
 
     this.changeInProgress = false;
     // A state change was ignored, because we were processing

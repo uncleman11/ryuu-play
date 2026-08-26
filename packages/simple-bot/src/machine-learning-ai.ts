@@ -146,7 +146,7 @@ export class MachineLearningAi implements BotAi {
     if (allPossibleActions.length == 0) {
       return new PassTurnAction(this.playerId);
     }
-    
+
     // Need to filter actions that cannot be performed
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
@@ -165,7 +165,7 @@ export class MachineLearningAi implements BotAi {
     
     const actionIndex = agent.selectAction(clientId, preprocessedState, legalIndexes); // Get action indexes ranked in descending order
     console.log('AFTER SELECT ACTION');
-    if (actionIndex !== undefined) {
+    if (actionIndex !== -1) {
       this.action_index = actionIndex;
       if (actionIndex == this.last_action_index) {
         this.action_retries++;
@@ -173,9 +173,11 @@ export class MachineLearningAi implements BotAi {
       else {
         this.action_retries = 0;
       }
+
       this.last_action_index = actionIndex;
       console.log('Return from Legal Action');
       console.log('LEGAL ACTION RETURNED');
+      console.log(actionIndex);
       console.log(legalActions[actionIndex]);
       return legalActions[actionIndex];
     }
