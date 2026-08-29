@@ -3,6 +3,7 @@ import * as tf from '@tensorflow/tfjs-node';
 
 import { EnergyCard } from '../store/card/energy-card';
 import { Player } from '../store/state/player';
+import { GameData } from './gamedata';
 
 interface Experience {
   state: number[];
@@ -10,6 +11,7 @@ interface Experience {
   reward: number;
   nextState: number[];
   done: boolean;
+  mask: number[];
 }
 
 // --- 3. The DQN Agent ---
@@ -21,6 +23,8 @@ const EPSILON_MIN: number = 0.01;
 const BATCH_SIZE: number = 32;
 const MEMORY_SIZE: number = 2000;
 const LEARNING_RATE: number = 0.001;
+const STATE_SIZE: number = 30; //TODO: CHECK CORRECT INPUT SIZE
+const ACTION_SIZE: number = 131;
 
 
 export class DQNAgent {
@@ -30,20 +34,34 @@ export class DQNAgent {
   public episode: number;
 
   private logPath: string;
+  private optimizer: tf.AdamOptimizer
 
 
   constructor() {
-    this.model = this.createModel();
     this.memory = new ReplayBuffer(MEMORY_SIZE);
     this.epsilon = EPSILON_START;
     this.episode = 0;
     this.logPath = 'logs/loss.csv';
+    this.optimizer = tf.train.adam(LEARNING_RATE);
 
     // Create the CSV file and write the header if it doesn't exist
     if (!fs.existsSync(this.logPath)) {
       const header = 'episode,loss,reward,epsilon\n';
       fs.writeFileSync(this.logPath, header);
     }
+
+    // The Actor-Critic Model
+    const input = tf.input({ shape: [STATE_SIZE] });
+        
+    const shared = tf.layers.dense({ units: 128, activation: 'relu' }).apply(input) as tf.SymbolicTensor;
+    const shared2 = tf.layers.dense({ units: 128, activation: 'relu' }).apply(shared) as tf.SymbolicTensor;
+
+    const logits = tf.layers.dense({ units: ACTION_SIZE, name: 'actor' }).apply(shared2) as tf.SymbolicTensor;
+    const value = tf.layers.dense({ units: 1, name: 'critic' }).apply(shared2) as tf.SymbolicTensor;
+
+    this.model = tf.model({ inputs: input, outputs: [logits, value] });
+    
+    this.optimizer = tf.train.adam(LEARNING_RATE);
   }
 
   public async loadModel(checkpointPath: string): Promise<void> {
@@ -53,20 +71,6 @@ export class DQNAgent {
       this.model = await tf.loadLayersModel(checkpointPath);
     } 
     throw new Error('Model file not found in ' + checkpointPath +'.');
-  }
-
-  // --- 1. The Neural Network Factory ---
-  private createModel(): tf.LayersModel {
-    const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 24, inputShape: [18], activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 24, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 131, activation: 'linear' })); // 131 actions
-
-    model.compile({
-      optimizer: tf.train.adam(LEARNING_RATE),
-      loss: 'meanSquaredError'
-    });
-    return model;
   }
 
   public preprocessGameState(players: Player[]): number[] {
@@ -115,23 +119,22 @@ export class DQNAgent {
     return state;
   }
 
-  public updateTargetModel(): void {
-    console.log('I AM UPDATING TARGET MODEL');
-    this.targetModel.setWeights(this.model.getWeights());
-  }
-
-  public act(state: number[]): number {
-    // Exploration vs Exploitation
-    if (Math.random() < this.epsilon) {
-      return Math.floor(Math.random() * 131); // Random action
-    }
-
+  public act(state: number[], mask: number[]): [any, any] {
     return tf.tidy(() => {
       const stateTensor = tf.tensor2d([state]);
-      const rawPrediction = this.model.predict(stateTensor);
-      const prediction = Array.isArray(rawPrediction) ? rawPrediction[0] : rawPrediction;
-      return prediction.argMax(1).dataSync()[0] as number;
-    });
+      const maskTensor = tf.tensor2d(mask);
+      const output: any = this.model.predict(stateTensor);
+      const logits = output[0];
+      const value = output[1];
+
+      // ACTION MASKING LOGIC:
+      // We add a very large negative number to the logits of illegal actions.
+      // This ensures that after Softmax, their probability is effectively 0.
+      const maskedLogits = logits.add(maskTensor.mul(tf.scalar(-1e9)));
+      
+      const probabilities = tf.softmax(maskedLogits);
+      return [probabilities, value];
+  });
   }
 
   public getRankedActions(state: number[]): number[] {
@@ -156,85 +159,44 @@ export class DQNAgent {
       return indexedValues.map(item => item.index);
     });
   }
-
-  public async train(): Promise<number> {
-    // if (this.memory.length < BATCH_SIZE) return;
-
-    const batch = this.memory.sample(BATCH_SIZE);
-
-    // Prepare tensors for the batch
-    const stateTensor = tf.tensor2d(batch.map(b => b.state));
-    const nextStateTensor = tf.tensor2d(batch.map(b => b.nextState));
-
-    // Use tf.tidy or manual disposal to manage memory
-    const currentQs = this.model.predict(stateTensor);
-    const nextQs = this.targetModel.predict(nextStateTensor);
-
-
-    let currentQsData: any;
-    if (Array.isArray(currentQs)) {
-      currentQsData = currentQs[0].arraySync();
-    } else {
-      currentQsData = currentQs.arraySync();
-    }
-
-    let nextQsData: any;
-    if (Array.isArray(nextQs)) {
-      nextQsData = nextQs[0].arraySync();
-    } else {
-      nextQsData = nextQs.arraySync();
-    }
-
-    // Calculate Q targets
-    const targets: number[][] = currentQsData.map((q: any, i: any) => {
-      const actionIdx = batch[i].action;
-      const maxNextQ = Math.max(...nextQsData[i]);
-      const target = batch[i].reward + (batch[i].done ? 0 : GAMMA * maxNextQ);
-
-      const newQArray = [...q]; // Clone array
-      newQArray[actionIdx] = target;
-      return newQArray;
-    });
-
-    const targetsTensor = tf.tensor2d(targets);
-
-    // Train the model
-    const history = await this.model.fit(stateTensor, targetsTensor, {
-      epochs: 1,
-      verbose: 1
-    });
-
-    // Decay epsilon
-    if (this.epsilon > EPSILON_MIN) {
-      this.epsilon *= EPSILON_DECAY;
-    }
-
-    // --- THE CHANGE IS HERE ---
-    // Capture the result of model.fit()
-    
-
-    // Extract the loss value from the first epoch [0]
-    const loss = history.history.loss[0];
-    const line = `${this.episode},${loss}}\n`;
-    fs.appendFileSync(this.logPath, line);
-    return loss as number;
   
-    // Manual disposal of all intermediate tensors to prevent memory leaks
-    // tf.dispose([stateTensor, nextStateTensor, currentQs, nextQs, targetsTensor]);
-  }
+  public async trainingStep() {
+    const experiences = this.memory.sample(BATCH_SIZE);
+    const states = tf.tensor2d(experiences.map(point => point.state));
+    const rewards = tf.tensor1d(experiences.map(point => point.reward));
+    const oldActions = experiences.map(point => point.action); // Indices of actions taken
+    const masks = tf.tensor2d(experiences.map(point => point.mask));
+    const oldProbs = tf.tensor1d(experiences.map(point => point.oldProb));
+    this.optimizer.minimize(() => {
+      const output: any = this.model.predict(states);
+      const logits = output[0];
+      const values = output[1];
+      
+      // Apply Masking
+      const maskedLogits = logits.add(masks.mul(tf.scalar(-1e9)));
+      const probs = tf.softmax(maskedLogits);
+      
+      // Calculate Advantages (Simplified GAE)
+      // Advantage = Actual Reward - Critic Value
+      const advantages = rewards.sub(values).flatten();
 
-  public async trainingStep(state: Player[] | undefined, action: number, nextState: Player[] | undefined, reward: number, done: boolean): Promise<number> {
-    this.memory.add(this.preprocessGameState(state!), action, reward, this.preprocessGameState(nextState!), done);
-    const loss: number = await this.train();
+      // Get probability of the action actually taken
+      const actionMasks = tf.oneHot(oldActions, ACTION_SIZE);
+      const probOfAction = tf.sum(probs.mul(actionMasks), 1);
+      
+      // Ratio r(t) = pi_theta / pi_old
+      const ratio = probOfAction.div(oldProbs);
 
-    this.episode += 1;
-    if (this.episode % 10 === 0) {
-      this.updateTargetModel();
-    }
+      // PPO Clipped Objective
+      const surr1 = ratio.mul(advantages);
+      const surr2 = tf.minimum(
+          ratio.clipByValue(1 - this.epsilon, 1 + this.epsilon),
+          advantages
+      );
 
-    console.log('Training step ran fine. Episode: ' + this.episode);
-    return loss;
-  }
+      const loss = tf.mean(tf.minimum(surr1, surr2)).neg(); // Negative because we minimize loss
+      return loss as tf.Scalar
+  });
 }
 
 
@@ -243,13 +205,24 @@ class ReplayBuffer {
   private buffer: Experience[] = [];
   constructor(private maxSize: number) { }
 
-  add(state: number[], action: number, reward: number, nextState: number[], done: boolean): void {
+  add(state: number[], action: number, reward: number, nextState: number[], done: boolean, mask: number[]): void {
     if (this.buffer.length >= this.maxSize) {
       this.buffer.shift();
     }
-    this.buffer.push({ state, action, reward, nextState, done });
+    this.buffer.push({ state, action, reward, nextState, done, mask });
   }
+  addGameData(gameData: GameData) {
+    const states: number[][] = gameData.getStates();
+    const actions: number[] = gameData.getActions();
+    const reward: number[] = gameData.getRewards();
+    const nextStates: number[][] = gameData.getNextStates();
+    const dones: boolean[] = gameData.getDones();
+    const masks: number[][] = gameData.getMasks();
 
+    for(let i = 0; i < gameData.getStates().length; i++) {
+      this.add(states[i], actions[i], reward[i], nextStates[i], dones[i], masks[i]);
+    }
+  }
   sample(batchSize: number): Experience[] {
     const samples: Experience[] = [];
     for (let i = 0; i < batchSize; i++) {
@@ -259,7 +232,7 @@ class ReplayBuffer {
     return samples;
   }
 
-  get length(): number {
+  getLength(): number {
     return this.buffer.length;
   }
 }

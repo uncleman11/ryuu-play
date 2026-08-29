@@ -95,7 +95,7 @@ export class MachineLearningAi implements BotAi {
     return legalActions;
   }
 
-  public decodeNextAction(clientId: number, state: State, agent: MCTSTree): Action | undefined {
+  public decodeNextAction(clientId: number, state: State, agent: PPO): Action | undefined {
     let player: Player | undefined;
     // Get the player object whose action needs to be decoded
     for (let i = 0; i < state.players.length; i++) {
@@ -131,7 +131,8 @@ export class MachineLearningAi implements BotAi {
     }
   }
 
-  private decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): Action {
+  private decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): [Action, number[]] {
+    const mask: number[] = new Array(this.n_actions).fill(0);
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
       const actions: Action[] = this.possibleActions[i].getPossibleActions(state, player);
@@ -144,27 +145,28 @@ export class MachineLearningAi implements BotAi {
     }
 
     if (allPossibleActions.length == 0) {
-      return new PassTurnAction(this.playerId);
+      return [new PassTurnAction(this.playerId), mask];
     }
 
     // Need to filter actions that cannot be performed
     const legalActions = this.getLegalActions(allPossibleActions);
     const preprocessedState = agent.preprocessGameState(state.players);
-    const legalIndexes: number[] | undefined = [];
+    const legalIndexes: number[] = [];
     
     legalActions.forEach((legalAction, index) => {
       if(this.action_retries >= this.max_action_retries) {
         if(legalActions[index] !== null && index !== this.last_action_index){
           legalIndexes.push(index);
+          mask[index] = 1;
         }
       }
       else if(legalActions[index] !== null){
         legalIndexes.push(index);
+        mask[index] = 1;
       }
     });
-    
-    const actionIndex = agent.selectAction(clientId, preprocessedState, legalIndexes, legalActions); // Get action indexes ranked in descending order
-    console.log('AFTER SELECT ACTION');
+
+    const actionIndex = agent.selectAction(clientId, preprocessedState, mask);
     if (actionIndex !== -1) {
       this.action_index = actionIndex;
       if (actionIndex == this.last_action_index) {
@@ -175,14 +177,10 @@ export class MachineLearningAi implements BotAi {
       }
 
       this.last_action_index = actionIndex;
-      console.log('Return from Legal Action');
-      console.log('LEGAL ACTION RETURNED');
-      console.log(actionIndex);
-      console.log(legalActions[actionIndex]);
-      return legalActions[actionIndex];
+      return [legalActions[actionIndex], mask];
     }
     console.log('Return from Legal Pass decode Turn Action');
-    return new PassTurnAction(this.playerId);
+    return [new PassTurnAction(this.playerId), mask];
   }
 
   private resolvePrompt(player: Player, state: State, prompt: Prompt<any>): Action {

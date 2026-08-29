@@ -1,5 +1,5 @@
 import { Action, BotAi, BotAiFactory } from '@ptcg/common';
-import { MCTSTree, State } from '@ptcg/common';
+import { PPO, State } from '@ptcg/common';
 import { Client } from '../client/client.interface';
 import { Game } from '../core/game';
 import { config } from '../../config';
@@ -9,14 +9,14 @@ export class BotGameHandler {
   private ai: BotAi | undefined;
   private state: State | undefined;
   private changeInProgress: boolean = false;
-  private agent: MCTSTree;
+  private agent: PPO;
 
   constructor(
     private client: Client,
     private botAiFactory: BotAiFactory,
     public game: Game,
     deckPromise: Promise<string[]>,
-    agent: MCTSTree
+    agent: PPO
   ) {
     this.agent = agent;
     this.waitForDeck(deckPromise);
@@ -31,11 +31,11 @@ export class BotGameHandler {
     this.state = undefined;
     this.changeInProgress = true;
 
-    const action = this.ai.decodeNextAction(this.client.id, state, this.agent);
+    const {action, mask} = this.ai.decodeNextAction(this.client.id, state, this.agent);
     const action_index = this.ai.action_index;
 
     if (action) {
-      await this.waitAndDispatch(action, action_index);
+      await this.waitAndDispatch(action, action_index, mask);
     }
 
     this.changeInProgress = false;
@@ -61,7 +61,7 @@ export class BotGameHandler {
     }
   }
 
-  private async waitAndDispatch(action: Action, action_index: number): Promise<void> {
+  private async waitAndDispatch(action: Action, action_index: number, mask: number[]): Promise<void> {
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     try {
       // 1. Wait for the delay first
@@ -74,11 +74,12 @@ export class BotGameHandler {
       if(this.ai != undefined && this.state != undefined) {
         await this.agent.update(
           this.game.id,
-          this.client.id, 
-          this.ai.getPlayerId(), 
+          this.client.id,
+          this.ai.getPlayerId(),
           this.state.players,
-          action_index, 
-          nextState.players
+          action_index,
+          nextState.players,
+          mask
         );
       }
       

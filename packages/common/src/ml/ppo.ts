@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { Mutex } from 'async-mutex';
 
 import { DQNAgent } from './dqn-agent';
+import { GameDataPoint, GameData} from './gamedata'
 import { Action } from '../store/actions/action';
 import { Player } from '../store/state/player';
 
@@ -13,88 +14,8 @@ import { Player } from '../store/state/player';
 // --- 2. MCTS Components ---
 
 const N_SAVE_EVERY_EPISODE = 50;
-
-class GameDataPoint {
-  public state: number[];
-  public action: number;
-  public reward: number;
-  public nextState: number[];
-  public done: boolean;
-
-  public constructor(state: number[], action: number, reward: number, nextState: number[], done: boolean) {
-    this.state = state;
-    this.action = action;
-    this.reward = reward;
-    this.nextState = nextState;
-    this.done = done;
-  }
-}
-
-class GameData {
-  private gameDataPoints: GameDataPoint[];
-  private isOver: boolean = false;
-  private gamma = 0.4;
-  private cumulativeRewards: number[];
-
-  constructor() {
-    this.gameDataPoints = [];
-    this.cumulativeRewards = [];
-  }
-
-  add(gameDataPoint: GameDataPoint): void {
-    if(this.isOver)
-    {
-      this.gameDataPoints.push(gameDataPoint);
-    }
-    else {
-      throw new Error('Final state already present in datapoints!');
-    }
-    if(gameDataPoint.done) {
-      this.isOver = true;
-      this.computeCumulativeRewards();
-    }
-  }
-
-  private computeCumulativeRewards() {
-    if(!this.isOver) {
-      throw new Error('Game is not over yet, shouldn\'t compute rewards!');
-    }
-    this.cumulativeRewards = this.getRewards();
-    let runningSum = 0;
-
-    // Iterate backwards from the end of the array
-    for (let i = this.cumulativeRewards.length - 1; i >= 0; i--) {
-      // Gt = Rt + gamma * G(t+1)
-      runningSum = this.cumulativeRewards[i] + Math.pow(this.gamma,this.cumulativeRewards.length -1 -i) * runningSum;
-      this.cumulativeRewards[i] = runningSum;
-    }
-  }
-
-
-  getStates(): Array<number[]> {
-    return this.gameDataPoints.map(point => point.state);
-  }
-
-  getActions(): Array<number> {
-    return this.gameDataPoints.map(point => point.action);
-  }
-
-  getRewards(): Array<number> {
-    return this.gameDataPoints.map(point => point.reward);
-  }
-
-  getNextStates(): Array<number[]> {
-    return this.gameDataPoints.map(point => point.nextState);
-  }
-
-  getDones(): Array<boolean> {
-    return this.gameDataPoints.map(point => point.done);
-  }
-
-  getLength(): number {
-    return this.gameDataPoints.length;
-  }
-}
+const MIN_TRAIN_SAMPLES = 2048;
+const N_ACTIONS = 131;
 
 export class PPO {
   private agent: DQNAgent;
@@ -113,23 +34,8 @@ export class PPO {
    * Called by the environment for each bot.
    * Returns the best action for a specific player_id.
   */
-  public selectAction(clientId: number, initialState: number[], legalActionIndexes: number[] | undefined, legalActions: Action[]): number {
-    // console.log('ACQUIRE LOCK AT SELECT ACTION TIME' + clientId);
-    // const release = await MCTSTree.selectActionmutex.acquire();
-    let bestAction: number = -1;
-    // 1. Ensure this bot has its own root in the tree
-    const rankedActions = this.agent.getRankedActions(initialState);
-
-    // Find the best legal action from the DQN's ranked list
-    for (const rankedAction of rankedActions) {
-      if (legalActionIndexes?.includes(rankedAction)) {
-        bestAction = rankedAction;
-        break;
-      }
-    }
-
-    // release();
-    return bestAction;
+  public selectAction(initialState: number[], mask: number[]): number {
+    return this.agent.act(initialState, mask);
   }
 
   /**
@@ -191,7 +97,7 @@ export class PPO {
   /**
    * Updates the MCTS and DQN for a specific player_id.
    */
-  public async update(gameId: number, clientId: number, playerId: number, state: Player[], action: number, nextState: Player[]): Promise<number> {
+  public async update(gameId: number, clientId: number, playerId: number, state: Player[], action: number, nextState: Player[], mask: number[]): Promise<number> {
     let loss: number = -1;
     try {
       const playerState: Player = this.getPlayerState(state, playerId);
@@ -206,16 +112,23 @@ export class PPO {
           action,
           reward,
           this.agent.preprocessGameState(nextState),
-          done
+          done,
+          mask
         )
       );
 
-      // Add batch to agent
+      // Add game to agent memory
+      this.agent.memory.addGameData(this.gamePlayerData.get([gameId, playerId]));
+
+      
       
       // Train if enough data
+      if(this.agent.memory.getLength() >= 1024) {
+        this.agent.trainingStep();
+      }
 
       // Clear game data from map
-
+      this.gamePlayerData.delete([gameId, playerId]);
       
 
 
