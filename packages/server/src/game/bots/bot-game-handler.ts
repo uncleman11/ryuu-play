@@ -71,14 +71,17 @@ export class BotGameHandler {
       const nextState: State = this.game.dispatch(this.client, action);
       
       // 3. Now you can await this call!
-      await this.agent.update(
-        this.client.id, 
-        this.ai?.getPlayerId(), 
-        this.state?.players, 
-        action_index, 
-        nextState?.players
-      );
-
+      if(this.ai != undefined && this.state != undefined) {
+        await this.agent.update(
+          this.game.id,
+          this.client.id, 
+          this.ai.getPlayerId(), 
+          this.state.players,
+          action_index, 
+          nextState.players
+        );
+      }
+      
       console.log('DISPATCHED ACTION:' + this.client.id);
       console.log(action_index);
       console.log(action);

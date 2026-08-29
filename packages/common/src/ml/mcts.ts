@@ -123,7 +123,7 @@ export class MCTSTree {
       const actionNode = root.children.get(action);
       if (!actionNode) {
         console.error(`Action ${action} not found in tree for client ${clientId}`);
-        return 0;
+        return -1;
       }
       let statePlayer: Player = new Player();
       let nextStatePlayer: Player = new Player();
