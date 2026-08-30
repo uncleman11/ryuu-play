@@ -1,9 +1,8 @@
-import * as fs from 'fs';
+// import * as fs from 'fs';
 import { Mutex } from 'async-mutex';
 
-import { DQNAgent } from './dqn-agent';
-import { GameDataPoint, GameData} from './gamedata'
-import { Action } from '../store/actions/action';
+import { PPOAgent } from './ppo-agent';
+import { GameDataPoint, GameData} from './gamedata';
 import { Player } from '../store/state/player';
 
 /**
@@ -11,14 +10,8 @@ import { Player } from '../store/state/player';
  * In your real app, this would be the result of your preprocessGameState function.
  */
 
-// --- 2. MCTS Components ---
-
-const N_SAVE_EVERY_EPISODE = 50;
-const MIN_TRAIN_SAMPLES = 2048;
-const N_ACTIONS = 131;
-
 export class PPO {
-  private agent: DQNAgent;
+  private agent: PPOAgent;
   private static updateMutex = new Mutex();
   
   // Map containing rewards of a game played by a specific player
@@ -27,15 +20,18 @@ export class PPO {
   private gamePlayerData : Map<Array<number>, GameData>;
 
   constructor() {
-    this.agent = new DQNAgent();
+    this.agent = new PPOAgent();
     this.gamePlayerData = new Map<Array<number>, GameData>();
   }
   /**
    * Called by the environment for each bot.
    * Returns the best action for a specific player_id.
   */
-  public selectAction(initialState: number[], mask: number[]): number {
-    return this.agent.act(initialState, mask);
+  public selectAction(initialState: number[], mask: number[]): [number, number] {
+    const output = this.agent.act(initialState, mask);
+    const actionIndex = output[0].argMax(1).dataSync()[0];
+    const prob: number[] = output[0].arraySync() as number[];
+    return [actionIndex, prob[actionIndex] as number];
   }
 
   /**
@@ -97,7 +93,7 @@ export class PPO {
   /**
    * Updates the MCTS and DQN for a specific player_id.
    */
-  public async update(gameId: number, clientId: number, playerId: number, state: Player[], action: number, nextState: Player[], mask: number[]): Promise<number> {
+  public async update(gameId: number, clientId: number, playerId: number, state: Player[], action: number, nextState: Player[], mask: number[], oldProb: number): Promise<number> {
     let loss: number = -1;
     try {
       const playerState: Player = this.getPlayerState(state, playerId);
@@ -113,15 +109,21 @@ export class PPO {
           reward,
           this.agent.preprocessGameState(nextState),
           done,
-          mask
+          mask,
+          oldProb
         )
       );
 
-      // Add game to agent memory
-      this.agent.memory.addGameData(this.gamePlayerData.get([gameId, playerId]));
+      const gameData: GameData | undefined = this.gamePlayerData.get([gameId, playerId]);
 
-      
-      
+      if(gameData == undefined) {
+        throw new Error ('Game data not found!');
+      }
+
+      // Add game to agent memory
+      this.agent.memory.addGameData(gameData);
+
+    
       // Train if enough data
       if(this.agent.memory.getLength() >= 1024) {
         this.agent.trainingStep();
@@ -129,16 +131,12 @@ export class PPO {
 
       // Clear game data from map
       this.gamePlayerData.delete([gameId, playerId]);
-      
-
-
-      
 
       // 4. Train the shared DQN model with this specific experience
       // This ensures that even though bots are independent, they are 
       // contributing to a shared "intelligence."
       const release = await PPO.updateMutex.acquire();
-      loss = await this.agent.trainingStep(state, action, nextState, reward, done);
+      loss = await this.agent.trainingStep();
       release();
     }
     catch(error) {

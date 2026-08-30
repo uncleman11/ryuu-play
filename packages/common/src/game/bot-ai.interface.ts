@@ -4,7 +4,7 @@ import { Action, State } from '../store';
 export interface BotAi {
   action_index: number;
   getPlayerId(): number;
-  decodeNextAction(clientId: number, state: State, agent: MCTSTree): Action | undefined;
+  decodeNextAction(clientId: number, state: State, agent: MCTSTree): [Action | undefined, number[] | undefined, number | undefined];
 }
 
 export abstract class BotAiFactory {

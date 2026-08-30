@@ -31,11 +31,11 @@ export class BotGameHandler {
     this.state = undefined;
     this.changeInProgress = true;
 
-    const {action, mask} = this.ai.decodeNextAction(this.client.id, state, this.agent);
+    const [action, mask, prob] = this.ai.decodeNextAction(this.client.id, state, this.agent);
     const action_index = this.ai.action_index;
 
-    if (action) {
-      await this.waitAndDispatch(action, action_index, mask);
+    if (action && mask && prob) {
+      await this.waitAndDispatch(action, action_index, mask, prob);
     }
 
     this.changeInProgress = false;
@@ -61,7 +61,7 @@ export class BotGameHandler {
     }
   }
 
-  private async waitAndDispatch(action: Action, action_index: number, mask: number[]): Promise<void> {
+  private async waitAndDispatch(action: Action, action_index: number, mask: number[], prob: number): Promise<void> {
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     try {
       // 1. Wait for the delay first
@@ -79,7 +79,8 @@ export class BotGameHandler {
           this.state.players,
           action_index,
           nextState.players,
-          mask
+          mask,
+          prob
         );
       }
       

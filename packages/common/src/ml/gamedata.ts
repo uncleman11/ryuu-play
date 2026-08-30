@@ -10,14 +10,16 @@ export class GameDataPoint {
   public nextState: number[];
   public done: boolean;
   public mask: number[];
+  public oldProb: number;
 
-  public constructor(state: number[], action: number, reward: number, nextState: number[], done: boolean, mask) {
+  public constructor(state: number[], action: number, reward: number, nextState: number[], done: boolean, mask: number[], oldProb: number) {
     this.state = state;
     this.action = action;
     this.reward = reward;
     this.nextState = nextState;
     this.done = done;
     this.mask = mask;
+    this.oldProb = oldProb;
   }
 }
 
@@ -93,6 +95,10 @@ export class GameData {
 
   getDones(): Array<boolean> {
     return this.gameDataPoints.map(point => point.done);
+  }
+
+  getOldProbs(): Array<number> {
+    return this.gameDataPoints.map(point => point.oldProb);
   }
 
   getLength(): number {

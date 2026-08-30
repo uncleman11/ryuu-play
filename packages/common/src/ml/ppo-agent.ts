@@ -12,14 +12,15 @@ interface Experience {
   nextState: number[];
   done: boolean;
   mask: number[];
+  oldProb: number;
 }
 
-// --- 3. The DQN Agent ---
+// --- 3. The PPO Agent ---
 // --- Configuration / Hyperparameters ---
-const GAMMA: number = 0.95;
+// const GAMMA: number = 0.95;
 const EPSILON_START: number = 1.0;
-const EPSILON_DECAY: number = 0.995;
-const EPSILON_MIN: number = 0.01;
+// const EPSILON_DECAY: number = 0.995;
+// const EPSILON_MIN: number = 0.01;
 const BATCH_SIZE: number = 32;
 const MEMORY_SIZE: number = 2000;
 const LEARNING_RATE: number = 0.001;
@@ -27,14 +28,14 @@ const STATE_SIZE: number = 30; //TODO: CHECK CORRECT INPUT SIZE
 const ACTION_SIZE: number = 131;
 
 
-export class DQNAgent {
+export class PPOAgent {
   public model: tf.LayersModel;
   public memory: ReplayBuffer;
   public epsilon: number;
   public episode: number;
 
   private logPath: string;
-  private optimizer: tf.AdamOptimizer
+  private optimizer: tf.AdamOptimizer;
 
 
   constructor() {
@@ -119,11 +120,11 @@ export class DQNAgent {
     return state;
   }
 
-  public act(state: number[], mask: number[]): [any, any] {
+  public act(state: number[], mask: number[]): [tf.Tensor<tf.Rank>, tf.Tensor<tf.Rank>] {
     return tf.tidy(() => {
       const stateTensor = tf.tensor2d([state]);
       const maskTensor = tf.tensor2d(mask);
-      const output: any = this.model.predict(stateTensor);
+      const output: tf.Tensor<tf.Rank>[] = this.model.predict(stateTensor) as tf.Tensor<tf.Rank>[];
       const logits = output[0];
       const value = output[1];
 
@@ -134,7 +135,7 @@ export class DQNAgent {
       
       const probabilities = tf.softmax(maskedLogits);
       return [probabilities, value];
-  });
+    });
   }
 
   public getRankedActions(state: number[]): number[] {
@@ -160,14 +161,14 @@ export class DQNAgent {
     });
   }
   
-  public async trainingStep() {
+  public async trainingStep(): Promise<number> {
     const experiences = this.memory.sample(BATCH_SIZE);
     const states = tf.tensor2d(experiences.map(point => point.state));
     const rewards = tf.tensor1d(experiences.map(point => point.reward));
     const oldActions = experiences.map(point => point.action); // Indices of actions taken
     const masks = tf.tensor2d(experiences.map(point => point.mask));
     const oldProbs = tf.tensor1d(experiences.map(point => point.oldProb));
-    this.optimizer.minimize(() => {
+    const loss: number | undefined = this.optimizer.minimize(() => {
       const output: any = this.model.predict(states);
       const logits = output[0];
       const values = output[1];
@@ -190,13 +191,18 @@ export class DQNAgent {
       // PPO Clipped Objective
       const surr1 = ratio.mul(advantages);
       const surr2 = tf.minimum(
-          ratio.clipByValue(1 - this.epsilon, 1 + this.epsilon),
-          advantages
+        ratio.clipByValue(1 - this.epsilon, 1 + this.epsilon),
+        advantages
       );
 
       const loss = tf.mean(tf.minimum(surr1, surr2)).neg(); // Negative because we minimize loss
-      return loss as tf.Scalar
-  });
+      return loss as tf.Scalar;
+    })?.dataSync()[0];
+    if (loss == undefined) {
+      throw new Error('Loss is undefinde!');
+    }
+    return loss;
+  }
 }
 
 
@@ -205,11 +211,11 @@ class ReplayBuffer {
   private buffer: Experience[] = [];
   constructor(private maxSize: number) { }
 
-  add(state: number[], action: number, reward: number, nextState: number[], done: boolean, mask: number[]): void {
+  add(state: number[], action: number, reward: number, nextState: number[], done: boolean, mask: number[], oldProb: number): void {
     if (this.buffer.length >= this.maxSize) {
       this.buffer.shift();
     }
-    this.buffer.push({ state, action, reward, nextState, done, mask });
+    this.buffer.push({ state, action, reward, nextState, done, mask, oldProb });
   }
   addGameData(gameData: GameData) {
     const states: number[][] = gameData.getStates();
@@ -218,11 +224,13 @@ class ReplayBuffer {
     const nextStates: number[][] = gameData.getNextStates();
     const dones: boolean[] = gameData.getDones();
     const masks: number[][] = gameData.getMasks();
+    const oldProb: number[] = gameData.getOldProbs();
 
     for(let i = 0; i < gameData.getStates().length; i++) {
-      this.add(states[i], actions[i], reward[i], nextStates[i], dones[i], masks[i]);
+      this.add(states[i], actions[i], reward[i], nextStates[i], dones[i], masks[i], oldProb[i]);
     }
   }
+
   sample(batchSize: number): Experience[] {
     const samples: Experience[] = [];
     for (let i = 0; i < batchSize; i++) {

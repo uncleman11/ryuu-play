@@ -2,7 +2,7 @@ import {
   Player, State, PassTurnAction, Action, GamePhase, Prompt,
   InvitePlayerPrompt, StateLog, ResolvePromptAction, GameLog, BotAi,
   Simulator, PlayCardAction, AttackAction, RetreatAction, UseAbilityAction,
-  UseStadiumAction, UseTrainerInPlayAction, MCTSTree
+  UseStadiumAction, UseTrainerInPlayAction, PPO
 } from '@ptcg/common';
 import { PromptResolver } from './prompt-resolver/prompt-resolver';
 import { PossibleActions } from './possible-actions/possible-actions';
@@ -11,7 +11,7 @@ import { SimpleBotOptions } from './simple-bot-options';
 export class MachineLearningAi implements BotAi {
 
   private possibleActions: PossibleActions[];
-  private n_actions: number = 131;
+  private n_actions: number = 132;
   private resolvers: PromptResolver[];
   public possibleActionOffsets: Map<string, number>;
   public action_index: number = -1;
@@ -33,9 +33,10 @@ export class MachineLearningAi implements BotAi {
       ['PlayCardAction', 0],
       ['AttackAction', 90],
       ['RetreatAction', 95],
-      ['UseAbilityAction', 119],
-      ['UseStadiumAction', 120],
-      ['UseTrainerInPlayAction', 126]
+      ['UseAbilityAction', 100],
+      ['UseStadiumAction', 124],
+      ['UseTrainerInPlayAction', 130],
+      ['PassTurnAction', 131]
     ]);
   }
 
@@ -90,12 +91,19 @@ export class MachineLearningAi implements BotAi {
           legalActions[offset * action.target.index] = action;
           break;
         }
+        case 'PASS_TURN_ACTION':
+        {
+          const action = possibleAction as PassTurnAction;
+          offset = this.possibleActionOffsets.get(possibleAction.type) ?? -1;
+          legalActions[offset] = action;
+          break;
+        }
       }
     }
     return legalActions;
   }
 
-  public decodeNextAction(clientId: number, state: State, agent: PPO): Action | undefined {
+  public decodeNextAction(clientId: number, state: State, agent: PPO): [Action | undefined, number[] | undefined, number | undefined] {
     let player: Player | undefined;
     // Get the player object whose action needs to be decoded
     for (let i = 0; i < state.players.length; i++) {
@@ -105,7 +113,7 @@ export class MachineLearningAi implements BotAi {
     }
 
     if (player === undefined) {
-      return;
+      return [undefined, undefined, undefined];
     }
 
     // Check if any pending prompt is present for the player that hasn't been resolved yet.
@@ -114,13 +122,13 @@ export class MachineLearningAi implements BotAi {
       const prompt = state.prompts.find(p => p.playerId === playerId && p.result === undefined);
       if (prompt !== undefined) {
         // If there's such prompt, resolve it
-        return this.resolvePrompt(player, state, prompt);
+        return [this.resolvePrompt(player, state, prompt), undefined, undefined];
       }
     }
 
     // Wait for other players to resolve the prompts.
     if (state.prompts.filter(p => p.result === undefined).length > 0) {
-      return;
+      return [undefined, undefined, undefined];
     }
 
     const activePlayer = state.players[state.activePlayer];
@@ -129,9 +137,10 @@ export class MachineLearningAi implements BotAi {
       console.log('RETURN DECODE NEXT ACTION');
       return this.decodePlayerTurnAction(clientId, player, state, agent);
     }
+    return [undefined, undefined, undefined];
   }
 
-  private decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: MCTSTree): [Action, number[]] {
+  private decodePlayerTurnAction(clientId: number, player: Player, state: State, agent: PPO): [Action, number[], number] {
     const mask: number[] = new Array(this.n_actions).fill(0);
     const allPossibleActions: Action[] = [];
     for (let i = 0; i < this.possibleActions.length; i++) {
@@ -145,7 +154,7 @@ export class MachineLearningAi implements BotAi {
     }
 
     if (allPossibleActions.length == 0) {
-      return [new PassTurnAction(this.playerId), mask];
+      return [new PassTurnAction(this.playerId), mask, 1];
     }
 
     // Need to filter actions that cannot be performed
@@ -166,7 +175,7 @@ export class MachineLearningAi implements BotAi {
       }
     });
 
-    const actionIndex = agent.selectAction(clientId, preprocessedState, mask);
+    const [actionIndex, probs] = agent.selectAction(preprocessedState, mask);
     if (actionIndex !== -1) {
       this.action_index = actionIndex;
       if (actionIndex == this.last_action_index) {
@@ -177,10 +186,10 @@ export class MachineLearningAi implements BotAi {
       }
 
       this.last_action_index = actionIndex;
-      return [legalActions[actionIndex], mask];
+      return [legalActions[actionIndex], mask, probs];
     }
     console.log('Return from Legal Pass decode Turn Action');
-    return [new PassTurnAction(this.playerId), mask];
+    return [new PassTurnAction(this.playerId), mask, 1];
   }
 
   private resolvePrompt(player: Player, state: State, prompt: Prompt<any>): Action {
